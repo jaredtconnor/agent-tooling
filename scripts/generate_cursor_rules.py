@@ -67,6 +67,48 @@ def generate(source: Path, output: Path) -> None:
     output.write_text(emit_mdc(frontmatter, body), encoding="utf-8")
 
 
+class NameCollisionError(Exception):
+    """Raised when two skills declare the same frontmatter name."""
+
+
+def generate_all(skills_dir: Path, output_dir: Path) -> list[Path]:
+    """Walk every skills/<name>/SKILL.md and emit .mdc files.
+
+    Output filename is derived from each skill's frontmatter `name:` field.
+    Two skills with the same name raise NameCollisionError listing both paths.
+    Returns the sorted list of written output paths.
+    """
+    sources = sorted(skills_dir.glob("*/SKILL.md"))
+    by_name: dict[str, list[Path]] = {}
+
+    # First pass: detect collisions before writing anything
+    parsed: list[tuple[Path, dict, str]] = []
+    for src in sources:
+        fm, body = parse_skill(src.read_text(encoding="utf-8"))
+        name = fm.get("name")
+        if not name:
+            # Let the per-file error path handle missing fields (Task 2.2)
+            raise ValueError(f"{src}: frontmatter missing required field: name")
+        by_name.setdefault(name, []).append(src)
+        parsed.append((src, fm, body))
+
+    collisions = {n: ps for n, ps in by_name.items() if len(ps) > 1}
+    if collisions:
+        lines = ["Duplicate skill names detected:"]
+        for name, paths in sorted(collisions.items()):
+            lines.append(f"  {name}: {', '.join(str(p) for p in paths)}")
+        raise NameCollisionError("\n".join(lines))
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for src, fm, body in parsed:
+        out = output_dir / f"{fm['name']}.mdc"
+        out.write_text(emit_mdc(fm, body), encoding="utf-8")
+        written.append(out)
+
+    return sorted(written)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Generate Cursor .mdc rules from canonical SKILL.md files."
@@ -85,26 +127,23 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     src: Path = args.source
-    if src.is_dir():
-        # Phase 2 work — for now the happy path is single-file.
-        print(f"error: directory input not supported yet (Phase 2 scope): {src}", file=sys.stderr)
-        return 2
-
     if not src.exists():
         print(f"error: source not found: {src}", file=sys.stderr)
         return 2
 
-    # Derive skill name from parent directory (skills/<name>/SKILL.md)
-    skill_name = src.parent.name
-    output = args.output_dir / f"{skill_name}.mdc"
-
     try:
-        generate(src, output)
-    except ValueError as e:
-        print(f"error: {src}: {e}", file=sys.stderr)
+        if src.is_dir():
+            written = generate_all(src, args.output_dir)
+            print(f"wrote {len(written)} rules to {args.output_dir}")
+        else:
+            skill_name = src.parent.name
+            output = args.output_dir / f"{skill_name}.mdc"
+            generate(src, output)
+            print(f"wrote {output}")
+    except (ValueError, NameCollisionError) as e:
+        print(f"error: {e}", file=sys.stderr)
         return 1
 
-    print(f"wrote {output}")
     return 0
 
 
