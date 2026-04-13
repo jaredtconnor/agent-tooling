@@ -7,3 +7,10 @@ skills/retro
 skills/review
 skills/setup-browser-cookies
 skills/ship
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.ruff_cache/
