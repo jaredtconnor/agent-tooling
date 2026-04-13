@@ -81,14 +81,22 @@ def generate_all(skills_dir: Path, output_dir: Path) -> list[Path]:
     sources = sorted(skills_dir.glob("*/SKILL.md"))
     by_name: dict[str, list[Path]] = {}
 
-    # First pass: detect collisions before writing anything
+    # First pass: parse + validate every source before writing anything
     parsed: list[tuple[Path, dict, str]] = []
     for src in sources:
-        fm, body = parse_skill(src.read_text(encoding="utf-8"))
+        try:
+            fm, body = parse_skill(src.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, ValueError) as e:
+            raise ValueError(f"{src}: malformed frontmatter: {e}") from e
+
         name = fm.get("name")
         if not name:
-            # Let the per-file error path handle missing fields (Task 2.2)
             raise ValueError(f"{src}: frontmatter missing required field: name")
+
+        description = fm.get("description")
+        if not description:
+            raise ValueError(f"{src}: frontmatter missing required field: description")
+
         by_name.setdefault(name, []).append(src)
         parsed.append((src, fm, body))
 

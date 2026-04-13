@@ -106,3 +106,44 @@ def test_name_collision_exits_nonzero_with_conflict_paths(tmp_path: Path):
         assert "dup-b" in msg
     else:
         raise AssertionError("expected NameCollisionError")
+
+
+import pytest
+
+
+def test_malformed_yaml_exits_nonzero_with_file_and_reason(tmp_path: Path):
+    (tmp_path / "skills" / "broken").mkdir(parents=True)
+    src = tmp_path / "skills" / "broken" / "SKILL.md"
+    src.write_text("---\nname: broken\ndescription: [unclosed\n---\n\nBody.\n")
+
+    with pytest.raises(ValueError) as excinfo:
+        generate_all(tmp_path / "skills", tmp_path / ".cursor" / "rules")
+
+    msg = str(excinfo.value)
+    assert "broken" in msg
+
+
+def test_missing_name_field_exits_nonzero(tmp_path: Path):
+    (tmp_path / "skills" / "noname").mkdir(parents=True)
+    src = tmp_path / "skills" / "noname" / "SKILL.md"
+    src.write_text("---\ndescription: No name here\n---\n\nBody.\n")
+
+    with pytest.raises(ValueError) as excinfo:
+        generate_all(tmp_path / "skills", tmp_path / ".cursor" / "rules")
+
+    msg = str(excinfo.value)
+    assert "name" in msg
+    assert "noname" in msg
+
+
+def test_missing_description_field_exits_nonzero(tmp_path: Path):
+    (tmp_path / "skills" / "nodesc").mkdir(parents=True)
+    src = tmp_path / "skills" / "nodesc" / "SKILL.md"
+    src.write_text("---\nname: nodesc\n---\n\nBody.\n")
+
+    with pytest.raises(ValueError) as excinfo:
+        generate_all(tmp_path / "skills", tmp_path / ".cursor" / "rules")
+
+    msg = str(excinfo.value)
+    assert "description" in msg
+    assert "nodesc" in msg
