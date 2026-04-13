@@ -1,0 +1,151 @@
+# Pre-commit hooks configuration
+# Install: pre-commit install --install-hooks
+# Run manually: pre-commit run --all-files
+# Update hooks: pre-commit autoupdate
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  # Conventional Commits validation (RECOMMENDED)
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []
+
+  # General file checks (RECOMMENDED)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Language-Specific Hooks (SUGGESTIONS - uncomment as needed)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# PYTHON
+#   - repo: https://github.com/astral-sh/ruff-pre-commit
+#     rev: v0.8.4
+#     hooks:
+#       - id: ruff
+#         args: [--fix]
+#       - id: ruff-format
+#
+#   - repo: https://github.com/pre-commit/mirrors-mypy
+#     rev: v1.14.0
+#     hooks:
+#       - id: mypy
+#         additional_dependencies: [types-all]
+
+# TYPESCRIPT/JAVASCRIPT
+#   - repo: https://github.com/pre-commit/mirrors-eslint
+#     rev: v9.17.0
+#     hooks:
+#       - id: eslint
+#         files: \.(js|ts|jsx|tsx)$
+#         types: [file]
+#         additional_dependencies:
+#           - eslint@9.17.0
+#           - typescript@5.7.2
+#
+#   - repo: https://github.com/pre-commit/mirrors-prettier
+#     rev: v4.0.0-alpha.8
+#     hooks:
+#       - id: prettier
+#         types_or: [css, javascript, jsx, ts, tsx, json, markdown, yaml]
+
+# GO
+#   - repo: https://github.com/golangci/golangci-lint
+#     rev: v1.62.2
+#     hooks:
+#       - id: golangci-lint
+#
+#   - repo: https://github.com/dnephin/pre-commit-golang
+#     rev: v0.5.1
+#     hooks:
+#       - id: go-fmt
+#       - id: go-vet
+#       - id: go-mod-tidy
+
+# RUST
+#   - repo: https://github.com/doublify/pre-commit-rust
+#     rev: v1.0
+#     hooks:
+#       - id: fmt
+#       - id: clippy
+#         args: ['--', '-D', 'warnings']
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Additional Useful Hooks (SUGGESTIONS)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# SECRET SCANNING
+#   - repo: https://github.com/Yelp/detect-secrets
+#     rev: v1.5.0
+#     hooks:
+#       - id: detect-secrets
+#         args: ['--baseline', '.secrets.baseline']
+
+# MARKDOWN LINTING
+#   - repo: https://github.com/igorshubovych/markdownlint-cli
+#     rev: v0.42.0
+#     hooks:
+#       - id: markdownlint
+#         args: [--fix]
+
+# SQL FORMATTING
+#   - repo: https://github.com/sqlfluff/sqlfluff
+#     rev: 3.3.0
+#     hooks:
+#       - id: sqlfluff-lint
+#       - id: sqlfluff-fix
+
+# DOCKER LINTING
+#   - repo: https://github.com/hadolint/hadolint
+#     rev: v2.13.1-beta
+#     hooks:
+#       - id: hadolint-docker
+
+# TERRAFORM
+#   - repo: https://github.com/antonbabenko/pre-commit-terraform
+#     rev: v1.96.2
+#     hooks:
+#       - id: terraform_fmt
+#       - id: terraform_validate
+#       - id: terraform_tflint
+
+# SHELL SCRIPTS
+#   - repo: https://github.com/shellcheck-py/shellcheck-py
+#     rev: v0.10.0.1
+#     hooks:
+#       - id: shellcheck
+
+# SECURITY SCANNING
+#   - repo: https://github.com/trufflesecurity/trufflehog
+#     rev: v3.86.2
+#     hooks:
+#       - id: trufflehog
+#         args: [git, 'file://.', --only-verified, --fail]
+
+# DEPENDENCY CHECKS
+#   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+#     rev: v1.3.3
+#     hooks:
+#       - id: python-safety-dependencies-check
+
+# COMMIT MESSAGE LENGTH
+#   - repo: https://github.com/jorisroovers/gitlint
+#     rev: v0.19.1
+#     hooks:
+#       - id: gitlint
+#         stages: [commit-msg]

@@ -1,0 +1,26 @@
+{
+  "skill_name": "bug-investigation",
+  "evals": [
+    {
+      "id": 1,
+      "name": "crash-log-intake",
+      "prompt": "I'm getting a NullReferenceException when running the single security simulator. Here's the crash output: Exception thrown: 'System.Collections.Generic.KeyNotFoundException' in System.Private.CoreLib.dll, Exception thrown: 'System.NullReferenceException' in Empyrean.Global.Data.Helper.dll. The call stack shows it's in FTPResultsIO.GetSingleFTPResult -> BaseIO.GetFieldDbl -> BaseIO.GetField at line 490.",
+      "expected_output": "Should parse the stack trace, form 3-10 hypotheses (including 'ReaderMapping not initialized'), add targeted Debug.WriteLine logging, provide reproduction steps, and after validation trace git history to find the ISafeDataReader conversion commit as the introducing change.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "linear-ticket-intake",
+      "prompt": "/dlc:bug-investigation ALM-150 — FTP Viewer throws error when opening form with empty database",
+      "expected_output": "Should load the Linear ticket via MCP, extract details, create investigation file in .agents/debug/, form hypotheses around empty/null database state, and provide instrumentation plan.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "vague-user-explanation",
+      "prompt": "Hey, something's weird — when I calculate a security with the multi-sim checkbox checked, it works fine for the first scenario but then crashes somewhere in the second one. I think it might be related to rate shocks? Not sure.",
+      "expected_output": "Should ask targeted clarifying questions (exception type? debug output? which security?), create a Linear ticket from the intake, form hypotheses around multi-sim state pollution between scenarios (shared mutable state, archive restore issues, scenario reset), and instrument CalcSecurityMulti loop boundaries.",
+      "files": []
+    }
+  ]
+}
