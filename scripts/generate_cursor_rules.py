@@ -9,10 +9,33 @@ See docs/ai-dlc/architecture.md for the full design rationale.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
 import yaml
+
+# Marker used inside generated .mdc files to flag skills that lean on
+# Claude-specific features (Task-tool dispatch, Skill() cross-calls).
+COMPAT_NOTE_MARKER = "> **Cursor-compatibility note:**"
+
+COMPAT_NOTE_BANNER = (
+    f"{COMPAT_NOTE_MARKER} This skill was authored for Claude Code and references "
+    "Claude-only features (Task-tool agent dispatch and/or `Skill()` cross-calls). "
+    "In Cursor, adapt those steps — agent dispatch is not available; invoke the "
+    "referenced skill manually or have the agent perform the work inline.\n\n"
+)
+
+# Detects Task(...) subagent dispatch calls, e.g. Task(subagent_type="backend-engineer", ...)
+_TASK_DISPATCH_RE = re.compile(r"\bTask\s*\(")
+
+# Detects Skill(name) style cross-calls, e.g. Skill(code-reviewer) or Skill(executing-tasks, ...)
+_SKILL_CALL_RE = re.compile(r"\bSkill\s*\(")
+
+
+def has_claude_only_features(body: str) -> bool:
+    """Return True if the body references Claude-specific orchestration patterns."""
+    return bool(_TASK_DISPATCH_RE.search(body) or _SKILL_CALL_RE.search(body))
 
 
 def parse_skill(content: str) -> tuple[dict, str]:
@@ -55,7 +78,8 @@ def emit_mdc(frontmatter: dict, body: str) -> str:
         allow_unicode=True,
     )
 
-    return f"---\n{fm_yaml}---\n\n{body.rstrip()}\n"
+    prefix = COMPAT_NOTE_BANNER if has_claude_only_features(body) else ""
+    return f"---\n{fm_yaml}---\n\n{prefix}{body.rstrip()}\n"
 
 
 def generate(source: Path, output: Path) -> None:

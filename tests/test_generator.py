@@ -147,3 +147,69 @@ def test_missing_description_field_exits_nonzero(tmp_path: Path):
     msg = str(excinfo.value)
     assert "description" in msg
     assert "nodesc" in msg
+
+
+# --- T2.3: Claude-compat note detection + resource path preservation ---
+
+from scripts.generate_cursor_rules import has_claude_only_features, COMPAT_NOTE_MARKER
+
+
+def test_skill_with_Task_dispatch_gets_compat_note(tmp_path: Path):
+    (tmp_path / "skills" / "uses-task").mkdir(parents=True)
+    src = tmp_path / "skills" / "uses-task" / "SKILL.md"
+    src.write_text(
+        "---\nname: uses-task\ndescription: Dispatches an agent.\n---\n\n"
+        "Call Task(subagent_type='backend-engineer', prompt='...')\n"
+    )
+
+    generate_all(tmp_path / "skills", tmp_path / ".cursor" / "rules")
+    mdc = (tmp_path / ".cursor" / "rules" / "uses-task.mdc").read_text()
+
+    assert COMPAT_NOTE_MARKER in mdc
+
+
+def test_skill_with_Skill_agent_reference_gets_compat_note(tmp_path: Path):
+    (tmp_path / "skills" / "calls-agent").mkdir(parents=True)
+    src = tmp_path / "skills" / "calls-agent" / "SKILL.md"
+    src.write_text(
+        "---\nname: calls-agent\ndescription: Calls reviewer.\n---\n\n"
+        "Use Skill(code-reviewer) to review.\n"
+    )
+
+    generate_all(tmp_path / "skills", tmp_path / ".cursor" / "rules")
+    mdc = (tmp_path / ".cursor" / "rules" / "calls-agent.mdc").read_text()
+
+    assert COMPAT_NOTE_MARKER in mdc
+
+
+def test_skill_without_claude_features_has_no_compat_note(tmp_path: Path):
+    _make_skill(tmp_path, "plain")
+    generate_all(tmp_path / "skills", tmp_path / ".cursor" / "rules")
+    mdc = (tmp_path / ".cursor" / "rules" / "plain.mdc").read_text()
+
+    assert COMPAT_NOTE_MARKER not in mdc
+
+
+def test_resource_paths_preserved_verbatim(tmp_path: Path):
+    (tmp_path / "skills" / "has-res").mkdir(parents=True)
+    src = tmp_path / "skills" / "has-res" / "SKILL.md"
+    body = (
+        "# Has Resources\n\n"
+        "See [resources/example.md](resources/example.md) for details.\n"
+        "Also [examples](resources/more/deep.md).\n"
+    )
+    src.write_text(f"---\nname: has-res\ndescription: Has resources.\n---\n\n{body}")
+
+    generate_all(tmp_path / "skills", tmp_path / ".cursor" / "rules")
+    mdc = (tmp_path / ".cursor" / "rules" / "has-res.mdc").read_text()
+
+    assert "[resources/example.md](resources/example.md)" in mdc
+    assert "[examples](resources/more/deep.md)" in mdc
+
+
+def test_has_claude_only_features_detects_patterns():
+    assert has_claude_only_features("Call Task(subagent_type='x')")
+    assert has_claude_only_features("Use Skill(code-reviewer) here")
+    assert has_claude_only_features("Dispatch Skill(executing-tasks, args=...)")
+    assert not has_claude_only_features("Plain markdown body, no dispatch.")
+    assert not has_claude_only_features("We use Skills (plural noun) without parens.")
