@@ -80,4 +80,4 @@ Do not present multiple options — pick the best approach.
 
 ## Customization
 
-To use a different planning process (e.g., ADLC's `technical-planning`), edit the `dev` skill's Phase 2 to reference a different planning skill. This skill can be swapped without changing the dev workflow.
+To use a different planning process (e.g., ADLC's `plan`), edit the `dev` skill's Phase 2 to reference a different planning skill. This skill can be swapped without changing the dev workflow.

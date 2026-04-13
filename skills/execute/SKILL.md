@@ -1,5 +1,5 @@
 ---
-name: execution
+name: execute
 description: Unified execution skill for features, phases, and standalone tasks. Orchestrates worktree creation, team/sequential task execution, code review gates, phase PRs (stacked default), and PM status updates.
 ---
 

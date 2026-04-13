@@ -1,5 +1,5 @@
 ---
-name: refining-issues
+name: refine
 description: Refine rough issue descriptions into fully-formed specifications through Socratic questioning, focusing on WHAT to build not HOW, writing results directly to Linear/JIRA issues
 when_to_use: when partner provides issue ID or feature description that needs requirements refinement before technical planning
 ---
@@ -12,7 +12,7 @@ Transform rough issue descriptions into fully-formed specifications through stru
 
 **Core principle:** Ask questions to understand user needs, expected behaviors, and success criteria. Avoid technical implementation details.
 
-**Announce at start:** "I'm using the refining-issues skill to refine this into a complete specification."
+**Announce at start:** "I'm using the refine skill to refine this into a complete specification."
 
 **Critical distinctions:**
 
@@ -295,14 +295,14 @@ After specification is validated, write it to the issue:
 
 **After completion, hand off to:**
 
-- `technical-planning` skill (via `/plan` command) - Creates technical implementation guide (HOW to build)
-- Then `breakdown-planning` skill (via `/breakdown` command) - Creates sub-issues from specification + technical plan
+- `plan` skill (via `/plan` command) - Creates technical implementation guide (HOW to build)
+- Then `breakdown` skill (via `/breakdown` command) - Creates sub-issues from specification + technical plan
 
 **The workflow:**
 
 1. `/refine` → Specification (WHAT to build) - THIS SKILL
-2. `/plan` → Technical Plan (HOW to build) - technical-planning skill
-3. `/breakdown` → Sub-issues (tasks to execute) - breakdown-planning skill
+2. `/plan` → Technical Plan (HOW to build) - plan skill
+3. `/breakdown` → Sub-issues (tasks to execute) - breakdown skill
 4. `/execute` → Implementation (build it) - execution skill
 
 ## Key Principles

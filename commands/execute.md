@@ -144,7 +144,7 @@ if local_mode:
     # Local mode: read from .agents/config.yaml
     config = yaml_load('.agents/config.yaml')
     # Pass local_mode flag to execution skill
-    Skill(dlc:execution, flags={'local': True})
+    Skill(execute, flags={'local': True})
 else:
     # PM mode: detect issue type from Linear/JIRA
     issue = mcp__linear-server__get_issue(id=issue_id)
@@ -152,14 +152,14 @@ else:
 
     if issue.parent:
         # This is a phase (sub-issue) - execute directly via Tier 2
-        Skill(execution)
+        Skill(execute)
     elif len(sub_issues) > 0:
         # This is a feature (parent) - execute via Tier 1
-        Skill(execution)
+        Skill(execute)
     else:
         # Single issue with no parent/children - treat as standalone task
         # Route by label to Tier 3 directly
-        Skill(dlc:executing-{label})
+        Skill(executing-{label})
 ```
 
 ### Step 2a: Feature Execution (Tier 1)
@@ -181,7 +181,7 @@ if git_status not empty:
     SUGGEST: Commit, stash, or use git worktree
 
 # Pass strategy to Tier 1 orchestration
-Skill(execution)
+Skill(execute)
 # Strategy is resolved inside the skill based on:
 # - Explicit --strategy flag
 # - Config (execution.strategy in dlc.local.md)
@@ -198,7 +198,7 @@ phase = mcp__linear-server__get_issue(id=issue_id)
 parent = mcp__linear-server__get_issue(id=phase.parent.id)
 
 # Invoke Tier 2 directly
-Skill(execution)
+Skill(execute)
 ```
 
 The skill handles per-task commits on the phase branch, dispatching tasks to Tier 3 skills, and creating the phase PR.

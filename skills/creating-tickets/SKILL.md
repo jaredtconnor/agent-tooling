@@ -296,7 +296,7 @@ ticket = mcp__jira__create_issue({
 
 **Used by:**
 
-- `breakdown-planning` - REQUIRED: Creates all sub-tickets using this skill
+- `breakdown` - REQUIRED: Creates all sub-tickets using this skill
 - `addressing-pr-feedback` - Creates tasks from PR feedback
 - Any skill that creates tickets
 

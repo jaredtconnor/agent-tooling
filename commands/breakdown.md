@@ -16,7 +16,7 @@ Transform refined specification and technical plan into executable sub-issues wi
 
 ## Overview
 
-This command uses the `breakdown-planning` skill to:
+This command uses the `breakdown` skill to:
 
 1. Load issue and verify Specification + Technical Plan exist
 2. Break Technical Plan phases into independent, implementable tasks
@@ -106,7 +106,7 @@ if "## Technical Plan" not in issue.description:
 ### Step 3: Run Breakdown-Planning Skill
 
 ```bash
-Skill(breakdown-planning)
+Skill(breakdown)
 ```
 
 The skill handles:
@@ -197,7 +197,7 @@ Loaded AUTH-123: "User authentication"
 ✓ Specification found
 ✓ Technical Plan found
 
-Using breakdown-planning skill...
+Using breakdown skill...
 
 Created 5 phase sub-issues (vertical slices):
 - Phase 1: Register a user (5 tasks) - no dependencies
@@ -234,7 +234,7 @@ ERROR: Run `/plan FEAT-45` first to create technical plan
 
 - Linear/JIRA MCP configured (or `--local` for local-only mode)
 - Issue with Specification + Technical Plan
-- `breakdown-planning` skill
+- `breakdown` skill
 - `local-task-store` skill (for `--local` mode)
 
 **Chains to:**
@@ -243,7 +243,7 @@ ERROR: Run `/plan FEAT-45` first to create technical plan
 
 ## Remember
 
-- Use `breakdown-planning` skill for all breakdown work
+- Use `breakdown` skill for all breakdown work
 - Each phase sub-issue = one vertical slice delivering demoable e2e functionality
 - Tasks within a phase = horizontal layer-specific units (DB, service, API, UI)
 - Tasks are checklist items in the phase sub-issue, never separate tickets

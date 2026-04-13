@@ -1,6 +1,6 @@
 # Task Parsing Reference
 
-Parsing contract between breakdown-planning output and execution skill input.
+Parsing contract between breakdown output and execution skill input.
 
 ## Parsing Hierarchy
 
@@ -8,7 +8,7 @@ Three formats, tried in order. First match wins.
 
 ### 1. Primary: `### Task N:` Headers
 
-Output format from `breakdown-planning` skill. Each task is a markdown heading with structured body.
+Output format from `breakdown` skill. Each task is a markdown heading with structured body.
 
 **Expected format:**
 

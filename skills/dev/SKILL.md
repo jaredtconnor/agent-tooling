@@ -161,7 +161,7 @@ Skills resolved in priority order (highest wins):
 
 ```
 dev "add batch cancellation" --tdd --qa
-dev plan "refactor data layer" --plan=adlc:technical-planning
+dev plan "refactor data layer" --plan=adlc:plan
 dev review --review=code-review-gate
 ```
 
@@ -211,7 +211,7 @@ Same building blocks as `run-orchestration`. Edit a sub-skill to change behavior
 
 | Role | Default | Alternatives |
 |------|---------|--------------|
-| Planning | `dev-plan` | `adlc:technical-planning` |
+| Planning | `dev-plan` | `adlc:plan` |
 | Review | `dev-review` | `code-review-gate`, `adlc:requesting-code-review` |
 | Task execution | *(main agent)* | `task-execution`, `adlc:executing-tasks` (TDD), `adlc:executing-chores` |
 | QA | `qa-review-gate` | Custom QA skill |

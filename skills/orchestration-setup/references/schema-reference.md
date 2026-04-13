@@ -254,7 +254,7 @@ skills:
 
 ```yaml
 skills:
-  plan: "adlc:technical-planning"                   # ADLC planning process
+  plan: "adlc:plan"                   # ADLC planning process
   review: "adlc:requesting-code-review"             # ADLC review process
   task_execution: "adlc:executing-tasks"            # Strict TDD (RED-GREEN-REFACTOR)
   tech_lead_review: "adlc:requesting-code-review"   # ADLC review for orchestration

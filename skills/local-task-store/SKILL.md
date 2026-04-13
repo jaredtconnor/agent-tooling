@@ -12,7 +12,7 @@ Manage task breakdown and execution state locally in `.agents/` instead of (or a
 
 **Core principle:** Linear for visibility (phase-level), local for execution (task-level).
 
-**Called by:** `breakdown-planning` (in local mode), `execution` (in local mode), `updating-pm-status` (for beads events).
+**Called by:** `breakdown` (in local mode), `execution` (in local mode), `updating-pm-status` (for beads events).
 
 ## Two-Tier Tracking Model
 
@@ -75,7 +75,7 @@ LINEAR (PM owns)                    LOCAL (Developer owns)
 
 ### Write Config (Breakdown)
 
-Called by `breakdown-planning` in `--local` mode. Writes the full task breakdown to config.yaml.
+Called by `breakdown` in `--local` mode. Writes the full task breakdown to config.yaml.
 
 ```python
 def write_config(source, mandate, platform, phases, quality_gates, skills):

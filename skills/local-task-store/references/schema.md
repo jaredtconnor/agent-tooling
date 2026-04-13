@@ -2,7 +2,7 @@
 
 ## config.yaml
 
-The config file holds the task breakdown. Written by `breakdown-planning` in local mode, read by `execution`.
+The config file holds the task breakdown. Written by `breakdown` in local mode, read by `execution`.
 
 ```yaml
 version: "1.0"

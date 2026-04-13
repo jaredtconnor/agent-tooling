@@ -15,7 +15,7 @@ Create technical plan from specification, defining HOW to build what's been spec
 
 ## Overview
 
-This command uses the `technical-planning` skill to:
+This command uses the `plan` skill to:
 
 1. Load issue and verify Specification exists
 2. Create Technical Plan (architecture, patterns, phases)
@@ -70,7 +70,7 @@ if not local_mode and "## Technical Plan" in issue.description:
 ### Step 3: Run Technical-Planning Skill
 
 ```bash
-Skill(dlc:technical-planning, args={ local_mode: local_mode })
+Skill(plan, args={ local_mode: local_mode })
 ```
 
 In **default mode** the skill writes the plan directly to the Linear/JIRA issue.
@@ -198,7 +198,7 @@ Output:
 Loaded AUTH-123: "User authentication"
 ✓ Specification found
 
-Using technical-planning skill...
+Using plan skill...
 
 ✓ Technical Plan written
   - 4 components defined
@@ -229,7 +229,7 @@ ERROR: Run `/refine FEAT-45` first
 
 - Linear/JIRA MCP configured
 - Issue with Specification section
-- `technical-planning` skill
+- `plan` skill
 
 **Chains to:**
 
@@ -237,7 +237,7 @@ ERROR: Run `/refine FEAT-45` first
 
 ## Remember
 
-- Use `technical-planning` skill for all planning work
+- Use `plan` skill for all planning work
 - Requires Specification (from `/refine`)
 - Creates Technical Plan (HOW)
 - **In `--local` mode: YOU (the command) write the files**, not the skill. Skill returns text. Command writes `.agents/plans/plan-<id>.md` then `.agents/config.yaml`. Verify both after writing. Plan files use issue-specific naming and accumulate per-issue.

@@ -368,7 +368,7 @@ With project management configured, you can now use:
 **Integration with Other Skills:**
 
 - Called from `setup` command Phase 1
-- Configuration used by: `refining-issues`, `breakdown-planning`, `execution`, `creating-tickets`
+- Configuration used by: `refine`, `breakdown`, `execution`, `creating-tickets`
 
 **Configuration Persistence:**
 

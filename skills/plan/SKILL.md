@@ -1,5 +1,5 @@
 ---
-name: technical-planning
+name: plan
 description: Create comprehensive technical implementation plans from refined specifications, translating WHAT to build into HOW to build it, with architecture, technology choices, and implementation guidance
 when_to_use: when partner provides issue ID that has been refined (has Specification section) and needs technical planning before breakdown
 ---
@@ -12,7 +12,7 @@ Transform refined specifications (WHAT to build) into comprehensive technical im
 
 **Core principle:** Translate user requirements into technical decisions with clear rationale, reference existing patterns, and create a roadmap for implementation.
 
-**Announce at start:** "I'm using the technical-planning skill to create a comprehensive technical implementation plan."
+**Announce at start:** "I'm using the plan skill to create a comprehensive technical implementation plan."
 
 **Critical distinctions:**
 
@@ -86,7 +86,7 @@ Specification Summary:
 - 2 primary data entities (User, Session)
 - 6 edge cases documented
 
-I'm using the technical-planning skill to create the implementation plan.
+I'm using the plan skill to create the implementation plan.
 ```
 
 ### Phase 2: Analyze Codebase
@@ -518,11 +518,11 @@ The command will then write:
 
 **Follows:**
 
-- `refining-issues` skill (via `/refine` command) - Provides Specification (WHAT)
+- `refine` skill (via `/refine` command) - Provides Specification (WHAT)
 
 **Precedes:**
 
-- `breakdown-planning` skill (via `/breakdown` command) - Creates sub-issues from Specification + Technical Plan
+- `breakdown` skill (via `/breakdown` command) - Creates sub-issues from Specification + Technical Plan
 
 **May use during planning:**
 

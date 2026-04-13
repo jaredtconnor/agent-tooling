@@ -17,7 +17,7 @@ Transform rough ideas into validated specifications (WHAT to build), ready for t
 
 ## Overview
 
-This command uses the `refining-issues` skill to:
+This command uses the `refine` skill to:
 
 1. Load or create issue in Linear/JIRA
 2. Ask questions about user needs (WHAT, not HOW)
@@ -71,7 +71,7 @@ issue_id = issue.id
 ### Step 3: Run Refining-Issues Skill
 
 ```bash
-Skill(refining-issues)
+Skill(refine)
 ```
 
 The skill handles:
@@ -182,7 +182,7 @@ Or create new: `/refine "your feature description"`
 **Requires:**
 
 - Linear/JIRA MCP configured
-- `refining-issues` skill
+- `refine` skill
 
 **Chains to:**
 
@@ -190,7 +190,7 @@ Or create new: `/refine "your feature description"`
 
 ## Remember
 
-- Use `refining-issues` skill for all refinement work
+- Use `refine` skill for all refinement work
 - Focus on WHAT not HOW
 - Specification drives tests later
 - Chain to `/plan` (not `/breakdown`)

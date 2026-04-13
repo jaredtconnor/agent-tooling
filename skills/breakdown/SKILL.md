@@ -1,5 +1,5 @@
 ---
-name: breakdown-planning
+name: breakdown
 description: Create implementation sub-issues from Specification and Technical Plan using vertical slicing, where each phase delivers independently demoable end-to-end functionality
 when_to_use: when Specification and Technical Plan are complete and you need to break down work into executable sub-issues
 ---
@@ -14,7 +14,7 @@ Break down Specification + Technical Plan into executable sub-issues using **ver
 
 **Critical:** NEVER create separate "write tests" and "implement" tasks. Each task includes BOTH.
 
-**Announce at start:** "I'm using the breakdown-planning skill to create the implementation breakdown."
+**Announce at start:** "I'm using the breakdown skill to create the implementation breakdown."
 
 ## Terminology
 
@@ -525,8 +525,8 @@ Ready to begin execution?
 
 **Requires completed:**
 
-- `refining-issues` skill (via `/refine` command) - Must have validated Specification
-- `technical-planning` skill (via `/plan` command) - Must have Technical Plan
+- `refine` skill (via `/refine` command) - Must have validated Specification
+- `plan` skill (via `/plan` command) - Must have Technical Plan
 
 **Uses during breakdown:**
 
