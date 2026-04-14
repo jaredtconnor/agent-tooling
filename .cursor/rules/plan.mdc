@@ -1,0 +1,574 @@
+---
+description: Create comprehensive technical implementation plans from refined specifications,
+  translating WHAT to build into HOW to build it, with architecture, technology choices,
+  and implementation guidance
+globs: ''
+alwaysApply: false
+---
+
+# Technical Planning
+
+## Overview
+
+Transform refined specifications (WHAT to build) into comprehensive technical implementation plans (HOW to build it), covering architecture, technology choices, data models, API contracts, testing strategy, and implementation phases.
+
+**Core principle:** Translate user requirements into technical decisions with clear rationale, reference existing patterns, and create a roadmap for implementation.
+
+**Announce at start:** "I'm using the plan skill to create a comprehensive technical implementation plan."
+
+**Critical distinctions:**
+
+- **Input**: Specification (WHAT) - user needs, behaviors, success criteria
+- **Output**: Technical Plan (HOW) - architecture, tech stack, patterns, phases
+
+## Quick Reference
+
+| Phase | Key Activities | Tool Usage | Output |
+|-------|---------------|------------|--------|
+| **1. Load Specification** | Retrieve refined issue | Linear/JIRA MCP tools | Specification loaded |
+| **2. Analyze Codebase** | Find patterns, similar code | Grep, Read | Existing patterns identified |
+| **3. Research Options** | Investigate technologies | Web search, documentation | Technology options evaluated |
+| **4. Design Architecture** | High-level component design | — | Architecture documented |
+| **5. Define Contracts** | Data models, APIs | — | Contracts specified |
+| **6. Plan Testing** | Strategy per test level | — | Testing approach defined |
+| **7. Implementation Approach** | Describe high-level approach and key dependencies | — | Approach documented |
+| **8. Document Patterns** | Reference existing code | — | Pattern references |
+| **9. Write Plan** | Default: update Linear/JIRA issue. `--local`: output plan as text only — do NOT write files (command handles file writes) | Linear/JIRA MCP update OR text output | Plan written or content returned to command |
+
+## The Process
+
+Copy this checklist to track progress:
+
+```
+Technical Planning Progress:
+- [ ] Phase 1: Load Specification (requirements retrieved from PM system)
+- [ ] Phase 2: Analyze Codebase (existing patterns identified)
+- [ ] Phase 3: Research Options (technology choices evaluated)
+- [ ] Phase 4: Design Architecture (high-level design created)
+- [ ] Phase 5: Define Contracts (data models and APIs specified)
+- [ ] Phase 6: Plan Testing (strategy per level defined)
+- [ ] Phase 7: Implementation Approach (high-level approach described)
+- [ ] Phase 8: Document Patterns (references to existing code)
+- [ ] Phase 9: Write Plan — default: update Linear/JIRA issue; --local: output plan as text only (command writes the files, not this skill)
+```
+
+### Phase 1: Load Specification
+
+**Verify issue has Specification section:**
+
+```bash
+# Linear:
+issue = mcp__linear-server__get_issue(id=issue_id)
+# OR JIRA:
+issue = mcp__jira__get_issue(issue_key=issue_id)
+
+if "## Specification" not in issue.description:
+    ERROR: Issue missing Specification section
+    SUGGEST: Run `/refine <issue-id>` first
+    STOP
+```
+
+**Extract key elements:**
+
+- User stories (who needs what)
+- Expected behaviors (given/when/then)
+- Success criteria (testable outcomes)
+- Data requirements (what data, what relationships)
+- Edge cases and error conditions
+
+**Present loaded spec:**
+
+```
+Loaded issue TEAM-123: "User authentication system"
+
+Specification Summary:
+- 4 user stories identified
+- 8 expected behaviors defined
+- 5 success criteria
+- 2 primary data entities (User, Session)
+- 6 edge cases documented
+
+I'm using the plan skill to create the implementation plan.
+```
+
+### Phase 2: Analyze Codebase
+
+**Search for existing patterns:**
+
+```bash
+# Find similar services/controllers
+Grep: pattern="class.*Service"
+Grep: pattern="class.*Controller"
+
+# Find domain-specific patterns (auth example)
+Grep: pattern="auth|authentication|login"
+
+# Find data model patterns
+Grep: pattern="class.*Model|interface.*Entity"
+
+# Find API endpoint patterns
+Grep: pattern="@Get|@Post|app.get|app.post|router"
+
+# Find testing patterns
+Grep: pattern="describe|test|it\(|def test_"
+```
+
+**Document findings:**
+
+```markdown
+Codebase Analysis:
+- Service pattern: src/services/*-service.ts
+- Controller pattern: src/controllers/*-controller.ts
+- Data models: src/models/*.ts
+- Test structure: tests/**/*.test.ts
+- Error handling: src/types/result.ts
+```
+
+**Identify constraints:** Framework, database, auth approach, API style, testing tools from package.json and imports.
+
+### Phase 3: Research Options & Confirm Decisions
+
+**For each technical decision, research options:**
+
+**Technology Choices to consider:**
+
+- Authentication: JWT vs Sessions vs OAuth
+- Data storage: SQL vs NoSQL considerations
+- Caching: Redis vs in-memory vs none
+- API design: REST vs GraphQL
+
+**For each option, document:**
+
+- Pros and cons
+- Fit with existing codebase
+- Performance implications
+- Security considerations
+- Team familiarity
+
+**Context-Aware Decision Making:**
+
+**ONLY ask for user confirmation when:**
+
+1. **New technology not in codebase** (e.g., adding Redis when not currently used)
+2. **Multiple valid architectural approaches** (e.g., sync vs async processing)
+3. **Significant trade-offs** (e.g., performance vs complexity)
+4. **Cross-cutting concerns** (e.g., caching strategy, security model changes)
+
+**DO NOT ask when:**
+
+1. **Codebase already uses the technology** (e.g., Postgres already in use → use Postgres)
+2. **Existing patterns dictate approach** (e.g., REST endpoints already present → continue with REST)
+3. **Single obvious choice** (e.g., bcrypt for password hashing)
+4. **Standard practice** (e.g., JWT for stateless auth when API already uses tokens)
+
+**Use AskUserQuestion for genuine decisions:**
+
+```typescript
+// Example: Introducing new technology
+AskUserQuestion({
+  questions: [{
+    question: "For session management, should we introduce Redis caching?",
+    header: "Caching",
+    multiSelect: false,
+    options: [
+      {
+        label: "Redis cache",
+        description: "Fast lookups, requires new infrastructure, better scalability"
+      },
+      {
+        label: "Database only",
+        description: "Uses existing Postgres, simpler setup, higher database load"
+      },
+      {
+        label: "In-memory cache",
+        description: "No new infrastructure, loses cache on restart, single-server only"
+      }
+    ]
+  }]
+})
+```
+
+**Document decisions with rationale:**
+
+```markdown
+Technology Choices:
+
+**Authentication Method:** JWT tokens
+- Rationale: Stateless, scalable, consistent with existing API patterns
+- No alternatives considered: Codebase already uses JWT (see src/services/token-service.ts)
+
+**Password Storage:** bcrypt with salt rounds = 12
+- Rationale: Industry standard, good security/performance balance
+- No alternatives considered: Codebase already uses bcrypt (see src/utils/password-hash.ts)
+
+**Session Management:** Redis for token blacklist [USER CONFIRMED]
+- Rationale: Fast lookups, handles distributed system, existing Redis infrastructure
+- Alternative considered: Database (rejected: slower, unnecessary load)
+- User confirmed: Redis cache over database-only approach
+- References: See src/services/cache-service.ts (existing Redis client)
+```
+
+**Pattern for interactivity:**
+
+1. Analyze codebase in Phase 2
+2. Identify genuine decision points (new tech, architectural choices, trade-offs)
+3. Research options for genuine decisions
+4. Use AskUserQuestion for decisions with multiple valid approaches
+5. Document all decisions with rationale (whether confirmed by user or dictated by codebase)
+
+**For detailed examples of technology decisions, see:** resources/example-technology-choices.md
+
+### Phase 4: Design Architecture
+
+**Document high-level component design:**
+
+```markdown
+Architecture Overview:
+
+**Components:**
+1. **[ComponentName]** (new/modified)
+   - Responsibilities: [What it does]
+   - Dependencies: [What it needs]
+   - Location: [File path]
+   - Pattern: Follows [existing pattern reference]
+
+**Data Flow:**
+[Step-by-step flow through components]
+
+**Integration Points:**
+[How it connects to existing middleware, error handling, validation]
+```
+
+**Confirm architecture approach if significant design decision:**
+
+**ONLY ask when:**
+
+- Multiple valid architectural patterns (e.g., microservices vs monolith expansion)
+- Significant component structure changes (e.g., new service layer)
+- Integration approach with trade-offs (e.g., event-driven vs synchronous)
+
+**Example confirmation:**
+
+```typescript
+AskUserQuestion({
+  questions: [{
+    question: "For the authentication service, should we use synchronous or event-driven architecture?",
+    header: "Architecture",
+    multiSelect: false,
+    options: [
+      {
+        label: "Synchronous",
+        description: "Direct service calls, simpler, consistent with existing services"
+      },
+      {
+        label: "Event-driven",
+        description: "Pub/sub pattern, better scalability, requires event infrastructure"
+      }
+    ]
+  }]
+})
+```
+
+**For detailed architecture examples, see:** resources/example-architecture-design-section.md
+
+### Phase 5: Define Contracts
+
+**Define data models and API contracts:**
+
+```markdown
+**Data Models:**
+**[EntityName]** (new/extend existing)
+- [field]: [type] ([existing/NEW])
+- Validation: [rules]
+
+**API Contracts:**
+**[METHOD] /api/[endpoint]**
+- Request: { fields }
+- Response (200): { fields }
+- Errors: [status codes and descriptions]
+```
+
+For detailed examples, see **resources/example-contracts-section.md**
+
+### Phase 6: Plan Testing
+
+**Define testing strategy:**
+
+```markdown
+Testing Strategy:
+
+**Unit Tests** - Service/utility functions in isolation, mock dependencies
+**Integration Tests** - API endpoints with real database
+**E2E Tests** - Critical user workflows only
+
+**All implementation follows TDD:** RED → GREEN → REFACTOR
+```
+
+**Confirm testing approach if significant decision:**
+
+**ONLY ask when:**
+
+- Multiple testing strategies with trade-offs (e.g., end-to-end vs integration focus)
+- Performance testing requirements unclear (e.g., load testing needed?)
+- Test infrastructure changes (e.g., introducing contract testing, visual regression)
+
+**Example confirmation:**
+
+```typescript
+AskUserQuestion({
+  questions: [{
+    question: "Should we include performance/load testing for this authentication system?",
+    header: "Testing",
+    multiSelect: false,
+    options: [
+      {
+        label: "Yes, add load tests",
+        description: "Verify performance under concurrent load, catch bottlenecks early"
+      },
+      {
+        label: "No, defer to later",
+        description: "Focus on functional correctness first, add performance tests later"
+      }
+    ]
+  }]
+})
+```
+
+For comprehensive testing strategy examples with specific test cases and what NOT to test at each level, see **resources/testing-templates.md**
+
+**Testing approach should follow project's CLAUDE.md guidelines.** Otherwise use test pyramid (many unit, some integration, few e2e).
+
+### Phase 7: Implementation Approach
+
+**Describe the high-level implementation approach — NOT a detailed breakdown.**
+
+The Technical Plan should outline the general approach, key components, and critical dependencies. The detailed breakdown into vertical phases and horizontal tasks is done later by `/breakdown`.
+
+```markdown
+Implementation Approach:
+
+**Key components to build:**
+- [Component 1]: [What it does, key responsibilities]
+- [Component 2]: [What it does, key responsibilities]
+
+**Critical dependencies:**
+- [Component X] must exist before [Component Y] (needs schema/interface/model)
+- [Component Z] can be developed independently
+
+**Suggested approach:**
+[1-2 paragraphs describing the general order and rationale — e.g., "Start with the core
+data model and a thin end-to-end slice, then extend with additional behaviors." Don't
+prescribe detailed phases — `/breakdown` will slice this into vertical phases with
+horizontal tasks.]
+```
+
+**IMPORTANT:** Do NOT create a detailed phase-by-phase breakdown here. That is the responsibility of `/breakdown`, which will:
+- Slice the work into **vertical phases** (each delivering demoable e2e functionality)
+- Break each phase into **horizontal tasks** by layer (DB, service, API, UI)
+- Define acceptance criteria and acceptance tests per phase
+
+The plan's job is to describe the technical approach, components, and dependencies so that `/breakdown` can make informed slicing decisions.
+
+**For examples of implementation approach descriptions, see:** [resources/example-implementation-approach.md](resources/example-implementation-approach.md)
+
+### Phase 8: Document Patterns
+
+**First, check project documentation:**
+
+1. Read `CLAUDE.md` in project root (architecture patterns, conventions)
+2. Read `CLAUDE-patterns/` or `docs/architecture.md` if present
+3. Search existing codebase for similar implementations
+
+**Reference existing code patterns:**
+
+```markdown
+Patterns to Follow:
+
+**From project CLAUDE.md/CLAUDE-*.md:**
+- [List key architectural principles from project docs]
+- [Reference specific patterns documented there]
+
+**From existing codebase:**
+- Service layer: src/services/[similar-service].ts (follow this structure)
+- Controller pattern: src/controllers/[similar-controller].ts (follow this pattern)
+- Error handling: src/middleware/error-handler.ts (use existing approach)
+- Validation: src/middleware/validator.ts (follow validation pattern)
+
+**Key best practices (if not documented in project):**
+- Dependency injection for testability
+- Explicit error handling (no silent failures)
+- Input validation at boundaries
+- Single responsibility per function/class
+```
+
+**Always prefer project's documented patterns over generic best practices.**
+
+### Phase 9: Write Plan
+
+**Format Technical Plan (concise parent-level overview):**
+
+```markdown
+## Technical Plan
+
+### Architecture Overview
+[1-2 paragraphs: High-level component structure and data flow]
+
+### Key Technology Choices
+[1 paragraph per major decision with brief rationale]
+
+### Implementation Approach
+[1-2 paragraphs: Key components, critical dependencies, general approach]
+
+### Testing Strategy
+[1 paragraph: Overview of test levels]
+
+### Key Patterns
+[Bullet list of reference files]
+```
+
+**IMPORTANT: Keep parent plan concise**
+
+- **1-2 paragraphs** per section maximum
+- **High-level overview** only - no detailed schemas, API contracts, or full component specs
+- **Detailed technical context** will be written to sub-issues during breakdown
+- **Focus on architecture and approach**, not implementation details
+
+**Two output modes — check if `--local` was passed:**
+
+#### Default mode: Write to Linear/JIRA issue
+
+```bash
+# Append concise Technical Plan to existing Specification
+current_description = issue.description
+technical_plan = format_concise_technical_plan()
+new_description = current_description + "\n\n---\n\n" + technical_plan
+
+# Linear:
+mcp__linear-server__update_issue(
+    id=issue_id,
+    description=new_description,
+    labels=['planned', 'refined'],
+    state='Todo'
+)
+
+# OR JIRA:
+mcp__jira__update_issue(
+    issue_key=issue_id,
+    description=new_description,
+    labels=['planned', 'refined'],
+    status='To Do'
+)
+```
+
+**Confirm with user:**
+
+```
+✓ Technical Plan written to issue TEAM-123 (concise parent-level overview).
+
+Next steps:
+1. Review the technical plan
+2. Run `/breakdown TEAM-123` to create implementation tasks
+
+Ready to break this down into implementation tasks?
+```
+
+#### Local mode (`--local`): Return plan content — command writes the files
+
+Do NOT update the Linear/JIRA issue.
+Do NOT write any files yourself in this mode.
+
+**Your job in local mode is to produce the plan content as output text only. The `/plan` command is responsible for writing both files to the correct paths.**
+
+Output the plan in this exact format so the command can capture and write it:
+
+```markdown
+# Technical Plan: <issue title>
+
+**Issue:** <ISSUE-ID>
+**Date:** <today>
+
+## Specification Summary
+[1 paragraph summarising the specification from the issue — the WHAT]
+
+## Architecture Overview
+[1-2 paragraphs]
+
+## Key Technology Choices
+[1 paragraph per major decision with brief rationale]
+
+## Implementation Approach
+[1-2 paragraphs: Key components, critical dependencies, general approach]
+
+## Testing Strategy
+[1 paragraph]
+
+## Key Patterns
+[Bullet list of reference files]
+```
+
+After outputting the plan content, state:
+
+```
+Plan content complete. Returning to /plan command to write files.
+```
+
+The command will then write:
+1. The plan file at the path specified by `dev_state.plan_file` (e.g. `plans/plan-alm-122.md`) — the plan content above
+2. `.agents/config.yaml` — the dev_state manifest
+
+## Integration with Other Skills
+
+**Follows:**
+
+- `refine` skill (via `/refine` command) - Provides Specification (WHAT)
+
+**Precedes:**
+
+- `breakdown` skill (via `/breakdown` command) - Creates sub-issues from Specification + Technical Plan
+
+**May use during planning:**
+
+- Web search for technology research
+- Documentation reading for API patterns
+- Codebase analysis for existing patterns
+
+**The workflow:**
+
+1. `/refine` → Specification (WHAT to build)
+2. `/plan` → Technical Plan (HOW to build) - THIS SKILL
+3. `/breakdown` → Sub-issues (tasks to execute)
+4. `/execute` → Implementation (build it)
+
+## Key Principles
+
+| Principle | Application |
+|-----------|-------------|
+| **Specification-driven** | Every technical decision maps back to specification requirements |
+| **Rationale required** | Every technology choice must explain "why" |
+| **Reference existing** | Always point to similar code in codebase |
+| **Test-first planning** | Testing strategy drives implementation phases |
+| **Approach not breakdown** | Describe implementation approach and key dependencies — leave detailed phasing to `/breakdown` |
+| **Dependency-aware** | Clearly document what blocks what |
+| **Pattern consistency** | Follow established patterns in codebase |
+| **Technology-appropriate** | Choose tech that fits team, scale, and existing stack |
+| **High-level focus** | Avoid code-level details, stay architectural |
+
+## Remember
+
+- **Specification provides context** - Every decision traces back to a requirement
+- **Existing patterns matter** - Don't invent new patterns when existing ones work
+- **Technology rationale is critical** - "Why" is more important than "what"
+- **Testing strategy drives tasks** - TDD approach requires test-first planning
+- **Approach not breakdown** - Describe components and dependencies, leave detailed vertical phasing to `/breakdown`
+- **High-level not code-level** - Focus on architecture, not implementation details
+- **In `--local` mode: do NOT write any files** — output the plan as text and return. The `/plan` command writes the plan to `dev_state.plan_file` and `.agents/config.yaml`.
+- **Default: all in PM system** — Technical Plan appended to Linear/JIRA issue; Linear is NOT touched in `--local` mode
+
+## Additional Resources
+
+- **resources/example-technology-choices.md** - Technology decision examples with rationale (auth, database, caching, etc.)
+- **resources/example-architecture-design-section.md** - Component architecture examples (auth system, payments, real-time chat)
+- **resources/example-implementation-approach.md** - High-level implementation approach examples (components, dependencies, starting points — not detailed breakdowns)
+- **resources/example-contracts-section.md** - Detailed API contract and data model examples (REST, GraphQL)
+- **Project CLAUDE.md and CLAUDE-*.md** - Always check project's architecture patterns and conventions first
+- **Project docs/** - Architecture guides, design decisions, pattern catalogs

@@ -1,0 +1,670 @@
+---
+description: Unified execution skill for features, phases, and standalone tasks. Orchestrates
+  worktree creation, team/sequential task execution, code review gates, phase PRs
+  (stacked default), and PM status updates.
+globs: ''
+alwaysApply: false
+---
+
+> **Cursor-compatibility note:** This skill was authored for Claude Code and references Claude-only features (Task-tool agent dispatch and/or `Skill()` cross-calls). In Cursor, adapt those steps — agent dispatch is not available; invoke the referenced skill manually or have the agent perform the work inline.
+
+# Execution
+
+## Overview
+
+Execute a parent feature issue by orchestrating its phase sub-issues. Each phase creates a worktree, executes tasks (team or sequential), passes a code review gate, and produces a phase PR. Stacked PRs are the default.
+
+**Entry point:** `/execute ISSUE-ID` → `commands/execute.md` detects issue type → invokes this skill for features and phases.
+
+**Core flow:** Load issue → Resume check → Validate → Resolve dependencies → Create feature worktree → Phase loop (worktree → tasks → review → PR → merge → cleanup) → Feature PR → Complete.
+
+## Architecture
+
+```
+Parent Issue (PARENT-100)
+  │
+  ▼ This skill
+  ├── Phase 1 (PARENT-101) ──▶ Worktree → Tasks → Review → Phase PR
+  │   ├── Task 1 ──▶ Tier 3 skill (TDD)
+  │   ├── Task 2 ──▶ Tier 3 skill (TDD)
+  │   └── Task 3 ──▶ Tier 3 skill (TDD)
+  ├── Phase 2 (PARENT-102) ──▶ Worktree → Tasks → Review → Phase PR
+  │   └── ...
+  └── Feature PR → main
+```
+
+**Strategies:**
+
+| Strategy | How | When |
+|----------|-----|------|
+| **Team** (default) | Spawn Sonnet task agents + code reviewer via Agent Teams | Multi-task phases, Agent Teams enabled |
+| **Sequential** (fallback) | Single subagent executes tasks serially, then code reviewer | No Agent Teams, single-task, headless/conductor, explicit flag |
+
+---
+
+## Step 0: Entry & Detection
+
+```python
+# Detect execution mode: local or PM
+local_mode = is_local_mode(flags, config)
+
+if local_mode:
+    # Local mode: read phases from .agents/config.yaml
+    config = yaml_load('.agents/config.yaml')
+    phases = config['phases']
+    proceed_to_step_1_local()
+else:
+    # PM mode (default): read from Linear/JIRA
+    issue = mcp__linear_server__get_issue(id=issue_id)
+    sub_issues = mcp__linear_server__list_issues(parentId=issue.id)
+
+    if len(sub_issues) > 0:
+        # Feature — orchestrate phases (this skill's main flow)
+        proceed_to_step_1()
+    elif issue.parent:
+        # Phase — execute tasks within this single phase
+        proceed_to_step_5_single_phase(issue)
+    else:
+        # Standalone — commands/execute.md routes to Tier 3 directly
+        ERROR("Standalone issues route to Tier 3 via execute command")
+
+def is_local_mode(flags):
+    """Determine if local task store should be used.
+    See local-task-store skill for canonical implementation."""
+    if flags.get('local'):
+        return True
+    if exists('.agents/config.yaml'):
+        config = yaml_load('.agents/config.yaml')
+        if 'phases' in config and config['phases']:
+            return True
+    return False
+```
+
+## Step 1: Resume Check
+
+### PM Mode (default): PM as Source of Truth
+
+Every invocation assumes it might be resuming. PM is the only source of truth — no local state files.
+
+**Gather state:** Query PM sub-issues (partition into done/in-review/in-progress/pending), check `git gtr list` for existing worktrees, check `gh pr list` for open PRs on the feature branch.
+
+**Resume decision table:**
+
+| PM Status | Action |
+|-----------|--------|
+| Done | **Skip** — phase already complete |
+| In Review + PR merged | **Sync PM** → Done, skip |
+| In Review + PR open (changes requested) | Treat as in-progress, address feedback |
+| In Review + no PR found | Reset to pending, re-execute |
+| In Progress + worktree exists | **Dispatch Explore agent** to assess progress (commits, uncommitted changes, test status, task completion). Resume from next incomplete task or start fresh based on report. |
+| In Progress + branch exists, no worktree | Recreate worktree (`git fetch origin {branch} && git gtr new {branch}`), then assess as above |
+| In Progress + no branch | Stale status — reset to pending |
+| Pending | Start fresh (cleanup orphan worktree/branch if present) |
+
+**Feature branch recovery:** If the feature worktree already exists, `cd` into it. If only the branch exists, recreate the worktree with `git fetch origin {branch} && git gtr new {branch}`.
+
+**Key principle:** Never fail because of leftover state. Detect it, assess progress, recover, continue.
+
+### Local Mode: state.yaml as Source of Truth
+
+In local mode, `.agents/state.yaml` tracks progress instead of PM.
+
+**Gather state:** Read state.yaml, check config hash, find first non-completed phase.
+
+```python
+def resume_check_local():
+    if not exists('.agents/state.yaml'):
+        # Fresh start — initialize state from config
+        init_state(config)
+        return
+
+    state = yaml_load('.agents/state.yaml')
+    config = yaml_load('.agents/config.yaml')
+
+    # Check config hash
+    current_hash = sha256(yaml_dump(config))
+    if state['config_hash'] != current_hash:
+        WARNING("config.yaml changed since last execution")
+        ASK_USER("Continue with new config or restart?")
+
+    # Find resume point
+    for phase in state['phases']:
+        if phase['status'] == 'completed':
+            SKIP(f"Phase '{phase['name']}' already complete")
+        elif phase['status'] == 'in_progress':
+            # Resume: skip completed tasks, re-dispatch in_progress
+            completed_tasks = [t for t, s in phase['tasks'].items() if s == 'completed']
+            LOG(f"Resuming phase '{phase['name']}': {len(completed_tasks)} tasks done")
+            resume_phase(phase)
+            break
+        elif phase['status'] == 'pending':
+            start_phase(phase)
+            break
+```
+
+**Local resume decision table:**
+
+| State | Action |
+|-------|--------|
+| No state.yaml | Initialize from config, start fresh |
+| Phase completed | Skip |
+| Phase in_progress, tasks completed | Resume from next incomplete task |
+| Phase in_progress, task failed | Retry (up to max_task_retries) or mark dead |
+| Phase pending | Start fresh |
+| Config hash mismatch | Warn user, ask to continue or restart |
+
+## Step 2: Validate Prerequisites
+
+### PM Mode
+
+```python
+# Parent checks
+if "## Specification" not in parent.description:
+    ERROR("Missing ## Specification — run /refine first")
+if "## Technical Plan" not in parent.description:
+    ERROR("Missing ## Technical Plan — run /plan first")
+
+# Phase checks
+for phase in [p for p in sub_issues if p.state not in ("Done", "Completed")]:
+    phase_detail = mcp__linear_server__get_issue(id=phase.id)
+
+    # Must have label
+    if not any(l.name in ("feature", "bug", "chore") for l in phase_detail.labels):
+        ERROR(f"Phase {phase.identifier} has no feature/bug/chore label")
+
+    # Must have key sections
+    for section in ("## Scope", "## Tasks", "## Acceptance Criteria"):
+        if section not in phase_detail.description:
+            ERROR(f"Phase {phase.identifier} missing {section}")
+
+    # Parseable tasks check
+    if "### Task" not in phase_detail.description and "- [ ]" not in phase_detail.description:
+        WARNING(f"Phase {phase.identifier} has no parseable tasks — whole-phase fallback will be used")
+```
+
+### Local Mode
+
+```python
+config = yaml_load('.agents/config.yaml')
+
+# Config-level checks
+if not config.get('mandate', {}).get('objective'):
+    ERROR("Missing mandate.objective in config.yaml — run /breakdown --local first")
+if not config.get('phases'):
+    ERROR("Missing phases in config.yaml — run /breakdown --local first")
+
+# Phase checks
+for phase in config['phases']:
+    if not phase.get('label') or phase['label'] not in ('feature', 'chore', 'bug'):
+        ERROR(f"Phase '{phase['name']}' has no valid label (feature/chore/bug)")
+    if not phase.get('tasks'):
+        ERROR(f"Phase '{phase['name']}' has no tasks")
+    if not phase.get('acceptance_criteria'):
+        WARNING(f"Phase '{phase['name']}' has no acceptance criteria")
+```
+
+## Step 3: Resolve Dependencies
+
+### PM Mode
+
+Build execution graph from PM blocking relations. See [references/dependency-analysis.md](references/dependency-analysis.md).
+
+### Local Mode
+
+Build execution graph from config.yaml `dependencies` field:
+
+```python
+graph = {}
+for phase in config['phases']:
+    deps = phase.get('dependencies', {})
+    graph[phase['name']] = deps.get('blocked_by', [])
+
+cycles = detect_cycles(graph)
+if cycles:
+    ERROR(f"Circular dependencies in config.yaml: {cycles}")
+
+waves = calculate_waves(graph)
+```
+
+### Both Modes (shared)
+
+```python
+graph = analyze_dependencies(sub_issues)
+cycles = detect_cycles(graph)
+if cycles:
+    ERROR(f"Circular dependencies: {cycles}")
+
+waves = calculate_waves(graph)
+# waves[0] = phases with no blockers (execute first)
+# waves[1] = phases whose blockers are all in wave 0
+# etc.
+```
+
+## Step 4: Create Feature Branch Worktree
+
+```bash
+# Create feature worktree from main (gtr handles ~/worktrees/<repo>/ location)
+git gtr new feature/{id}-{slug}
+cd ~/worktrees/<repo>/feature-{id}-{slug}/
+
+# gtr automatically:
+# - Creates branch from main
+# - Copies .env files
+# - Runs just install (if justfile exists)
+```
+
+**PM update:** Set parent issue → In Progress.
+**Local mode:** Initialize state.yaml, emit beads event (optional).
+
+```python
+if local_mode:
+    # Initialize state.yaml from config (sets all phases to 'pending')
+    resume = check_resume()  # Returns None if fresh start, resume info otherwise
+    if not resume:
+        init_state(config)
+    emit_beads_event('phase_completed', None, {
+        'name': f"Execution started: {config['mandate']['objective']}",
+        'pr_url': ''
+    })
+```
+
+## Step 5: Phase Loop
+
+For each ready phase (respecting dependency waves):
+
+### 5a. Create Phase Worktree
+
+```bash
+# Branch from feature branch (--from-current uses current branch as base)
+git gtr new {phase-branch} --from-current
+cd ~/worktrees/<repo>/{phase-branch}/
+
+# gtr handles .env copying and just install
+```
+
+### 5b. Status Update
+
+```python
+if local_mode:
+    # Update local state
+    update_phase(phase['name'], status='in_progress', branch=phase_branch)
+    emit_beads_event('phase_started', None, {'name': phase['name']})
+    # Sync phase status to Linear (if sync_phases enabled)
+    if config['platform'].get('linear', {}).get('sync_phases') and phase.get('linear_issue'):
+        mcp__linear_server__save_issue(id=phase['linear_issue'], state="In Progress")
+else:
+    # PM mode: update Linear directly
+    mcp__linear_server__save_issue(id=phase.id, state="In Progress")
+```
+
+### 5c. Resolve Strategy
+
+```python
+def resolve_strategy(flags, config, phase):
+    # Explicit flag takes priority
+    if flags.get("strategy"):
+        return flags["strategy"]
+
+    # Config setting
+    if config.get("execution.strategy"):
+        return config["execution.strategy"]
+
+    # Default: team
+    strategy = "team"
+
+    # Auto-fallback to sequential
+    if strategy == "team":
+        if not env_var_set("CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"):
+            return "sequential"
+        if is_headless_or_conductor():
+            return "sequential"
+        tasks = parse_tasks(phase.description)
+        if len(tasks) <= 1:
+            return "sequential"
+
+    return strategy
+```
+
+### 5d. Execute Tasks
+
+**Parse tasks** from phase description (PM mode) or config.yaml (local mode).
+
+```python
+if local_mode:
+    # Read tasks from config.yaml
+    tasks = phase['tasks']  # Already structured with id, title, depends_on, etc.
+else:
+    # Parse tasks from Linear phase description
+    # See references/task-parsing.md
+    tasks = parse_tasks(phase.description)
+```
+
+**Route by phase label:**
+
+| Phase Label | Tier 3 Skill | Workflow |
+|-------------|-------------|----------|
+| `feature` | `executing-tasks` | Full TDD |
+| `bug` | `executing-bug-fixes` | Reproduce + TDD fix |
+| `chore` | `executing-chores` | Verification-focused |
+
+#### Team Strategy
+
+See [references/team-deployment.md](references/team-deployment.md) for full prompt templates.
+
+```python
+tasks = parse_tasks(phase.description)
+
+# Add tasks to shared TaskList
+for task in tasks:
+    TaskCreate(
+        subject=f"Task {task['index']}: {task['title']}",
+        description=format_task_context(task, phase, parent, patterns),
+        activeForm=f"Executing {task['title']}"
+    )
+
+# Set up dependencies from parallelisation notes
+dependencies = parse_parallelisation_notes(phase.description)
+for task_id, blocked_by in dependencies.items():
+    TaskUpdate(taskId=task_id, addBlockedBy=blocked_by)
+
+# Spawn Sonnet task agents
+max_teammates = min(len(tasks), 4)
+for i in range(max_teammates):
+    spawn_teammate(model="sonnet", prompt=TASK_AGENT_PROMPT)
+
+# Monitor completion, handle failures
+# See references/failure-handling.md for retry protocol
+```
+
+#### Sequential Strategy
+
+```python
+accumulated_patterns = codebase_patterns
+
+for task in task_order:
+    result = Task(
+        subagent_type=route_by_label(phase_label),
+        prompt=format_task_context(task, phase, parent, accumulated_patterns)
+    )
+
+    if "COMPLETE" in result:
+        new_patterns = extract_patterns(result)
+        accumulated_patterns.extend(new_patterns)
+    else:
+        # Retry up to 3 times, then fail phase
+        # See references/failure-handling.md
+```
+
+### 5e. Code Review Gate
+
+After all tasks complete, dispatch code reviewer to validate the phase. Provide the reviewer with a summary of completed tasks (from their `<completion>TASK:` signals).
+
+```python
+Task(
+    subagent_type="dlc:code-reviewer",
+    prompt=f"""Review all changes on phase branch vs base.
+
+    PHASE: {phase.identifier} — {phase.title}
+    DIFF: git diff {base_branch}...{phase_branch}
+    ACCEPTANCE CRITERIA: {phase.acceptance_criteria}
+    SPECIFICATION: {spec_excerpt}
+    TECHNICAL PLAN: {plan_excerpt}
+
+    TASK SUMMARIES:
+    {aggregated_task_summaries}
+
+    CHECK:
+    - TDD compliance (tests before impl, tests fail first, coverage)
+    - Acceptance criteria met
+    - Code quality (SOLID, no circular deps, proper naming)
+    - Security (no hardcoded secrets, input validation)
+
+    Produce severity-tagged report: critical / major / minor.
+    Fix critical and major issues directly. Report minor as comments.
+    """
+)
+```
+
+### 5f. Create Phase PR
+
+Determine base branch based on PR strategy. See [references/pr-strategies.md](references/pr-strategies.md).
+
+```python
+# Stacked (default): chain PRs
+if pr_strategy == "stacked":
+    base = previous_phase_branch or feature_branch
+else:  # feature branch strategy
+    base = feature_branch
+
+# Push and create PR
+git push -u origin {phase_branch}
+pr = gh pr create --base {base} --head {phase_branch} \
+    --title "[{phase.identifier}] {phase.title}" \
+    --body "Phase PR body with changes, tests, patterns"
+```
+
+### 5g. Status Update
+
+```python
+if local_mode:
+    # Update local state with PR info
+    update_phase(phase['name'], status='in_review', pr_url=pr.url, pr_number=pr.number)
+    emit_beads_event('phase_pr_created', None, {'name': phase['name'], 'pr_url': pr.url})
+    # Sync to Linear if sync_phases enabled
+    if config['platform'].get('linear', {}).get('sync_phases') and phase.get('linear_issue'):
+        mcp__linear_server__save_issue(id=phase['linear_issue'], state="In Review")
+        mcp__linear_server__create_comment(
+            issueId=phase['linear_issue'], body=f"Phase PR created: {pr.url}"
+        )
+else:
+    # PM mode
+    mcp__linear_server__save_issue(id=phase.id, state="In Review")
+    mcp__linear_server__create_comment(
+        issueId=phase.id, body=f"Phase PR created: {pr.url}"
+    )
+```
+
+### 5h. Squash-Merge Phase PR
+
+```bash
+gh pr merge {pr_number} --squash --delete-branch
+```
+
+### 5i. Phase Completion & Status Update
+
+```python
+if local_mode:
+    # Update local state
+    update_phase(phase['name'], status='completed')
+    emit_beads_event('phase_completed', None, {
+        'name': phase['name'],
+        'pr_url': pr.url,
+        'summary': summary,
+        'test_count': test_count
+    })
+    # Sync to Linear (phase-level only)
+    if config['platform'].get('linear', {}).get('sync_phases') and phase.get('linear_issue'):
+        mcp__linear_server__save_issue(id=phase['linear_issue'], state="Done")
+        parent_id = config['platform']['linear']['parent_issue']
+        mcp__linear_server__create_comment(
+            issueId=parent_id,
+            body=f"""## Phase Complete: {phase['name']}
+**Implemented:** {summary}
+**Phase PR:** #{pr_number} (squash-merged)
+**Tests:** {test_count} written, all passing
+**Verification:** lint + typecheck clean
+**Patterns:** {new_patterns}
+**Files Changed:** {file_list}"""
+        )
+else:
+    # PM mode
+    mcp__linear_server__save_issue(id=phase.id, state="Done")
+    mcp__linear_server__create_comment(
+        issueId=parent.id,
+        body=f"""## Phase Complete: {phase.identifier}
+**Implemented:** {summary}
+**Phase PR:** #{pr_number} (squash-merged)
+**Tests:** {test_count} written, all passing
+**Verification:** lint + typecheck clean
+**Patterns:** {new_patterns}
+**Files Changed:** {file_list}"""
+    )
+```
+
+### 5j. Cleanup Phase Worktree
+
+```bash
+git gtr rm {phase-branch} --delete-branch
+```
+
+### 5k. Accumulate Patterns
+
+Pass discovered patterns to next phase for consistency.
+
+## Step 6: Feature PR
+
+```bash
+# From feature worktree
+gh pr create --base main --head {feature_branch} \
+    --title "[{parent.identifier}] {parent.title}" \
+    --body "Feature PR with summary of all phases"
+```
+
+**PM update:** Set parent → In Review, comment PR link.
+
+## Step 7: Feature Completion Signal
+
+Emit a structured `<completion>FEATURE:` signal that the conductor can parse:
+
+```xml
+<completion>FEATURE:{parent.identifier}:COMPLETE
+
+## Ticket
+{parent.identifier}: {parent.title}
+
+## Summary
+{aggregated_summary_of_all_phases}
+
+## Phases Completed
+1. {phase_1.identifier}: {phase_1.title} — {task_count} tasks, PR #{pr_1} merged
+2. {phase_2.identifier}: {phase_2.title} — {task_count} tasks, PR #{pr_2} merged
+
+## Verification
+- {total_tests} tests written, all passing
+- Lint + typecheck clean across all phases
+- Code review passed on all phase PRs
+
+## Feature PR
+{feature_pr_url}
+
+## Follow-up Tickets
+- {follow_up_1} (created during execution)
+</completion>
+```
+
+If blocked:
+
+```xml
+<completion>FEATURE:{parent.identifier}:BLOCKED
+{reason}
+</completion>
+```
+
+---
+
+## Worktree Management
+
+All worktree operations use `git gtr`. See the `worktrees` / `setup-gtr` skills for setup.
+
+| Operation | Command |
+|-----------|---------|
+| Create feature worktree (from main) | `git gtr new feature/{id}-{slug}` |
+| Create phase worktree (from feature branch) | `git gtr new {phase-branch} --from-current` |
+| List worktrees | `git gtr list` |
+| Remove after merge | `git gtr rm {branch} --delete-branch` |
+| Batch cleanup merged | `git gtr clean --merged` |
+
+**Directory convention:** `~/worktrees/<repo-name>/<branch-slug>/`
+
+## Branch Naming
+
+| Branch | Pattern | Example |
+|--------|---------|---------|
+| Feature | `feature/{parent-id}-{slug}` | `feature/PARENT-100-user-auth` |
+| Phase | `feature/{parent-id}-{slug}/phase-{n}-{slug}` | `feature/PARENT-100-user-auth/phase-1-register` |
+
+Tasks commit directly to the phase branch (no per-task branches).
+
+## Completion Signals
+
+```
+Task level:       <completion>TASK:{phase_id}:{task_index}:COMPLETE\n{structured body}</completion>
+Phase level:      <completion>PHASE:{phase_id}:COMPLETE\n{structured body}</completion>
+Feature level:    <completion>FEATURE:{parent_id}:COMPLETE\n{structured body}</completion>
+Standalone level: <completion>STANDALONE:{issue_id}:COMPLETE\n{structured body}</completion>
+```
+
+Status values: `COMPLETE`, `BLOCKED`, `FAILED`
+
+Each signal includes a structured body with Summary, Verification, and Files Changed sections.
+
+## PR Strategies
+
+| Strategy | Flag | Default? | Behavior |
+|----------|------|----------|----------|
+| **Stacked** | `--pr-strategy stacked` | Yes | Phase PRs chain: phase-2 → phase-1 → feature |
+| **Feature branch** | `--pr-strategy feature` | No | All phase PRs → feature branch directly |
+
+See [references/pr-strategies.md](references/pr-strategies.md) for details.
+
+## Execution Wrapper
+
+For resilient execution that survives session timeouts:
+
+```bash
+dlc-persistent-execute PARENT-100              # Default: stacked PRs
+dlc-persistent-execute PARENT-100 --max-iterations 30
+dlc-persistent-execute PARENT-100 --strategy sequential
+```
+
+---
+
+## Additional Resources
+
+- [references/task-parsing.md](references/task-parsing.md) — Task extraction from phase descriptions
+- [references/dependency-analysis.md](references/dependency-analysis.md) — Graph building, cycle detection, wave computation
+- [references/pr-strategies.md](references/pr-strategies.md) — Stacked vs feature branch PR strategies
+- [references/team-deployment.md](references/team-deployment.md) — Task agent + code reviewer prompt templates
+- [references/failure-handling.md](references/failure-handling.md) — Retry → skip → continue protocol
+
+## Related Skills
+
+**Dispatches to (Tier 3):**
+- **executing-tasks** — TDD workflow for `feature` labeled phases
+- **executing-bug-fixes** — Debug + TDD for `bug` labeled phases
+- **executing-chores** — Verification for `chore` labeled phases
+
+**Uses:**
+- **creating-pull-requests** — PR creation patterns
+- **updating-pm-status** — PM lifecycle updates
+
+## Related Skills
+
+- **conducting** — Board-level orchestration (multiple features, worktrees)
+- **worktrees** — `git gtr` worktree management
+
+## Remember
+
+- **Two modes:** PM mode (default, Linear as source of truth) or local mode (`--local`, state.yaml as source of truth)
+- **Local mode:** Read tasks from config.yaml, track progress in state.yaml, sync only phase status to Linear
+- **PM mode:** Query PM to resume, no local state files
+- **Stacked PRs default** — `--pr-strategy feature` for flat structure
+- **Team default, sequential fallback** — auto-detect based on env, task count, mode
+- **gtr for worktrees** — never raw `git worktree` commands
+- **Code review gate per phase** — reviewer validates before PR creation
+- **One commit per task** — Tier 3 skills handle commits
+- **Vertical slices** — each phase delivers demoable end-to-end functionality
+- **Pattern accumulation** — pass learnings from earlier phases to later ones
+- **Sync PM at every transition** — In Progress, In Review, Done (phase-level only in local mode)
+- **Completion signals** — structured `<completion>FEATURE:` / `<completion>STANDALONE:` for conductor detection
+- **Beads events** — optional audit trail in local mode, fire-and-forget

@@ -1,7 +1,10 @@
 ---
-name: setting-up-pre-commit
-description: "Configure pre-commit hooks for automated quality checks and conventional commit validation. Detects project tooling and suggests appropriate hooks (Python — ruff/mypy, TypeScript — ESLint/Prettier, etc.), respects existing configuration, and integrates with justfile."
-when_to_use: when setting up pre-commit hooks for a repository, adding hooks to existing configuration, configuring quality checks for CI/CD, or standardizing commit conventions
+description: Configure pre-commit hooks for automated quality checks and conventional
+  commit validation. Detects project tooling and suggests appropriate hooks (Python
+  — ruff/mypy, TypeScript — ESLint/Prettier, etc.), respects existing configuration,
+  and integrates with justfile.
+globs: ''
+alwaysApply: false
 ---
 
 # Setting Up Pre-commit Hooks

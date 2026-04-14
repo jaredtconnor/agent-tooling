@@ -1,0 +1,702 @@
+---
+description: Create implementation sub-issues from Specification and Technical Plan
+  using vertical slicing, where each phase delivers independently demoable end-to-end
+  functionality
+globs: ''
+alwaysApply: false
+---
+
+# Breakdown Planning
+
+## Overview
+
+Break down Specification + Technical Plan into executable sub-issues using **vertical slicing**. Each phase delivers independently demoable functionality touching all necessary layers. Tasks within a phase are atomic todos that together complete the phase.
+
+**Core principle:** Every phase is a vertical slice - it touches DB, API, and UI (as needed) for ONE piece of functionality. Never slice horizontally by layer.
+
+**Critical:** NEVER create separate "write tests" and "implement" tasks. Each task includes BOTH.
+
+**Announce at start:** "I'm using the breakdown skill to create the implementation breakdown."
+
+## Terminology
+
+| Term | Slice Direction | Definition | Example |
+|------|----------------|-----------|---------|
+| **Phase** | **Vertical** (e2e thin slice) | A subticket under the parent feature. Delivers independently demoable end-to-end functionality touching all necessary layers. Has its own acceptance criteria and acceptance tests. | "Phase 1: Register a user (DB + API + UI)" |
+| **Task** | **Horizontal** (layer-specific) | A todo item within a phase subticket. One TDD cycle targeting a specific layer or concern. | "Add users table migration (DB)", "Implement POST /api/users endpoint (API)" |
+
+**Key distinctions:**
+- Phases are subtickets in the PM system. Tasks are checklist items within a phase's description — **never separate tickets**.
+- Phases slice **vertically** across layers to deliver demoable behavior. Tasks slice **horizontally** within a phase, each targeting one layer (DB, service, API, UI).
+
+## Quick Reference
+
+| Phase | Key Activities | Tool Usage | Output |
+|-------|---------------|------------|--------|
+| **1. Load Context** | Retrieve Specification + Technical Plan | Linear/JIRA MCP | Full context loaded |
+| **2. Extract Phases** | Identify vertical slices from Technical Plan | — | Vertical slice phases defined |
+| **3. Create Tasks** | Define atomic todos within each phase | TodoWrite | Tasks with TDD checklists |
+| **4. Create Sub-Issues** | Write phase subtickets to PM system | Linear/JIRA MCP | Sub-issues with full context |
+| **5. Map Dependencies** | Link blocking relationships between phases | Linear/JIRA MCP | Dependency graph complete |
+| **5.5 Verify Quality** | Re-read sub-issues and validate sections | Linear/JIRA MCP | All sub-issues validated |
+
+## The Process
+
+Copy this checklist to track progress:
+
+```
+Breakdown Progress:
+- [ ] Phase 1: Load Context (Specification + Technical Plan retrieved)
+- [ ] Phase 2: Extract Phases (vertical slices identified)
+- [ ] Phase 3: Create Tasks (atomic todos defined per phase)
+- [ ] Phase 4: Create Sub-Issues (phase subtickets created with full context)
+- [ ] Phase 5: Map Dependencies (blocking relationships documented)
+- [ ] Phase 5.5: Verify Sub-Issue Quality (all sections validated)
+```
+
+### Phase 1: Load Context
+
+**Retrieve parent issue:**
+
+- Linear: `mcp__linear-server__get_issue` with issue ID
+- JIRA: (equivalent JIRA tool) with issue ID
+- Extract: Title, Specification section, Technical Plan section
+
+**Verify required sections:**
+
+```python
+if "## Specification" not in issue.description:
+    ERROR: Missing Specification - run `/refine` first
+    STOP
+
+if "## Technical Plan" not in issue.description:
+    ERROR: Missing Technical Plan - run `/plan` first
+    STOP
+```
+
+**Extract context:**
+
+- From Specification: User stories, expected behaviors, success criteria
+- From Technical Plan: Components, phases, dependencies, patterns
+
+### Phase 2: Extract Phases (Vertical Slices)
+
+**Reinterpret Technical Plan phases as vertical slices.**
+
+The Technical Plan may describe components by layer. Your job is to reorganize them into vertical slices where each phase delivers one independently demoable piece of functionality.
+
+**Vertical slicing rules:**
+
+1. Each phase MUST touch all layers needed for its functionality (DB, service, API, UI)
+2. Each phase MUST be independently demoable - you can show it working end-to-end
+3. Phase 1 should be the thinnest possible end-to-end slice (the "walking skeleton")
+4. Subsequent phases add functionality, not layers
+
+**Vertical vs Horizontal Slicing:**
+
+```
+BAD (horizontal - layers as phases):
+  Phase 1: Data models (User, Session, Token)
+  Phase 2: Services (AuthService, SessionService)
+  Phase 3: API endpoints (/login, /register, /logout)
+  Phase 4: UI (LoginForm, RegisterForm)
+
+  Problem: Nothing is demoable until Phase 4 is complete.
+
+GOOD (vertical - features as phases):
+  Phase 1: Register a user (migration + model + POST /register + form)
+  Phase 2: Log in (session model + POST /login + form + JWT)
+  Phase 3: View profile (GET /me + profile page)
+  Phase 4: Log out (DELETE /session + button)
+  Phase 5: Reset password (token model + email + endpoints + form)
+
+  Each phase is independently demoable from day one.
+```
+
+**Identify phases from Technical Plan:**
+
+```python
+# Parse Technical Plan components
+components = parse_technical_plan(issue.description)
+
+# Reorganize into vertical slices
+phases = group_into_vertical_slices(components)
+
+# Each phase should answer: "What can the user DO after this phase?"
+for phase in phases:
+    assert phase.has_demoable_behavior()
+    assert phase.touches_all_needed_layers()
+```
+
+### Phase 3: Create Tasks (Horizontal Layer-Specific Units Within Phases)
+
+**Tasks are horizontal, layer-specific todos within a vertical phase — NOT standalone subtickets.**
+
+Each vertical phase contains multiple horizontal tasks that together deliver the end-to-end slice. Tasks target specific layers (DB migration, service logic, API endpoint, UI component) and are checklist items in the phase subticket description.
+
+**CRITICAL RULE: One task = one TDD cycle (RED-GREEN-REFACTOR) targeting one layer**
+
+**Sizing heuristics:**
+
+| Level | Right-sized | Warning sign | Action | Human reference |
+|-------|------------|--------------|--------|-----------------|
+| **Feature** | 3-6 phases | >8 phases | Split into multiple features | ~1-1.5 weeks |
+| **Phase** | ~5 tasks | >8 tasks | Split into multiple phases | ~1 day |
+| **Task** | 1 TDD cycle, 1-3 files | >5 files | Split into multiple tasks | ~1-2 hours |
+
+**Task description template:**
+
+Each task within a phase should specify:
+- **Description**: What to do in 1-2 sentences
+- **Layers touched**: DB / Service / API / UI
+- **Files likely modified**: Specific file paths
+- **Unit tests** (explicit test names and expectations - these define the RED phase):
+  - `test_name` - input -> expected output/behavior
+- **Reference examples**: Similar code in the codebase to follow
+
+**Example phase with tasks:**
+
+```markdown
+## Phase 1: Register a user
+
+### Tasks
+- [ ] Add users table migration (DB) - `db/migrations/`
+      Tests: migration applies (table exists), rolls back (table gone)
+- [ ] Implement User model (Service) - `models/user.py`
+      Tests: test_create_valid, test_email_required, test_password_hashed, test_email_unique
+- [ ] Implement POST /api/users (API) - `routes/users.py`
+      Tests: test_register_201, test_missing_fields_422, test_duplicate_409, test_invalid_email_422
+- [ ] Create RegisterForm (UI) - `components/RegisterForm.tsx`
+      Tests: test_renders_fields, test_validates_required, test_shows_errors
+- [ ] Wire form to API (Integration)
+      Tests: test_submit_creates_user, test_error_displayed, test_success_confirmation
+
+### E2E Acceptance
+- POST /api/users with valid data -> 201, user in DB
+- Submit form with invalid data -> validation errors shown
+- Submit form with valid data -> confirmation page
+```
+
+## Collision Prevention
+
+When multiple tasks within a phase touch the same files or modules, sequence them to prevent merge conflicts:
+
+**Rules:**
+
+1. **Distinct code areas**: Tasks that touch completely different files can be parallelised
+2. **Shared file ownership**: If two tasks modify the same file, they MUST be sequenced (mark one as blocked by the other)
+3. **Migration ordering**: Database migrations must be strictly ordered
+4. **Import chain**: If task B imports from a file task A creates, B is blocked by A
+
+**In phase subticket, note parallelisation:**
+
+```markdown
+### Parallelisation Notes
+- Tasks 1-2 can run in parallel (different files)
+- Task 3 depends on Task 1 (imports User model)
+- Tasks 4-5 must be sequential (both modify routes/index.py)
+```
+
+**For detailed rules, examples, and anti-patterns, see:** [resources/task-structure-guide.md](resources/task-structure-guide.md)
+
+**Task description includes:**
+
+- Specification context (WHAT): User stories and behaviors this enables
+- Technical Plan guidance (HOW): Architecture, patterns, dependencies
+- TDD Checklist: Write tests -> implement -> refactor (use base checklist format below)
+- Acceptance criteria: Tests pass, follows patterns, code reviewed
+- Justfile commands: Use `just test`, `just lint`, `just format`, `just build` (stack-agnostic)
+
+**Base TDD Checklist Format (include in every feature/bug phase):**
+
+```markdown
+## TDD Implementation Checklist
+
+**RED Phase:**
+- [ ] Write test for [behavior 1] - verify it fails
+- [ ] Write test for [behavior 2] - verify it fails
+- [ ] Write test for [edge case] - verify it fails
+
+**GREEN Phase:**
+- [ ] Implement minimal code to pass [behavior 1] test
+- [ ] Implement minimal code to pass [behavior 2] test
+- [ ] Implement minimal code to pass [edge case] test
+- [ ] All tests passing
+
+**REFACTOR Phase:**
+- [ ] Check for code smells (see REFACTORING.md)
+- [ ] Refactor while keeping tests green
+- [ ] Final verification: all tests still passing
+```
+
+**Identify dependencies between phases:**
+
+- **Blocks:** Other phases that depend on this one
+- **Blocked by:** Phases this one depends on
+- **Parallel:** Phases with no interdependencies
+
+**Use TodoWrite to track sub-issue creation:**
+
+```
+Sub-Issue Creation Progress:
+- [ ] Phase 1: Register a user (no dependencies)
+- [ ] Phase 2: Log in (blocked by Phase 1 - needs User model)
+- [ ] Phase 3: View profile (blocked by Phase 2 - needs auth)
+...
+```
+
+### Phase 4: Create Sub-Tickets
+
+**REQUIRED SUB-SKILL:** Use `dlc:creating-tickets` for all ticket creation
+
+**For each phase, create one sub-ticket in Linear/JIRA:**
+
+**Critical:** Every sub-ticket MUST have exactly ONE label: `feature`, `chore`, or `bug`
+
+**Determine ticket type:**
+
+- New functionality or behavior change? -> `feature` label
+- Maintenance, refactoring, docs? -> `chore` label
+- Fixing broken behavior? -> `bug` label
+
+**Phase subticket template:**
+
+Each phase subticket should include:
+
+**1. Scope**
+
+What this phase delivers. One sentence describing the demoable outcome.
+
+```markdown
+## Scope
+After this phase, users can register an account with email and password and see a success confirmation.
+```
+
+**2. Relevant Context from Parent (WHAT and WHY)**
+
+Extract and include the specific portions from parent Specification and Technical Plan that are relevant to this phase:
+
+- **From Specification**: User stories, expected behaviors, success criteria, edge cases
+- **From Technical Plan**: Architecture decisions, technology choices, patterns, design rationale
+
+**3. What's Demoable**
+
+Describe what can be demonstrated after this phase is complete:
+
+```markdown
+## What's Demoable
+- User fills out registration form with email/password
+- Form validates input and shows inline errors
+- Successful submission creates user record and shows confirmation
+- Duplicate email shows appropriate error message
+```
+
+**4. Tasks (Atomic Todos with Unit Test Definitions)**
+
+List all tasks as checklist items with explicit unit test definitions so the implementing agent can follow TDD:
+
+Use the same `### Task N:` format shown in the Phase 3 example above, with Layers, Files, Unit tests, and Reference for each task.
+
+**5. Implementation Guide (HOW - Key Ideas)**
+
+- **Module (justfile location)**: Which justfile directory for verification
+- **Behaviors to implement**: Specific, testable behaviors
+- **Integration points**: Dependencies and consumers
+- **Code patterns**: Reference similar implementations with file paths
+
+**6. Parallelisation Notes**
+
+Which tasks can run concurrently and which must be sequenced:
+
+```markdown
+## Parallelisation Notes
+- Tasks 1-2: parallel (different files)
+- Task 3: after Task 2 (imports User model)
+- Task 4: after Task 3 (needs API endpoint)
+```
+
+**7. Dependencies**
+
+```markdown
+## Dependencies
+- **Blocked by:** None (first phase)
+- **Blocks:** Phase 2 (Login), Phase 3 (Profile)
+```
+
+**8. TDD Implementation Checklist**
+
+For features and bugs, include the standard TDD checklist.
+
+**For chores**, replace TDD checklist with verification checklist (build, lint, test, etc.)
+
+**9. Acceptance Criteria (E2E)**
+
+Every phase MUST have clear, verifiable acceptance criteria that describe end-to-end behavior. These are the E2E tests that verify the vertical slice works as a whole.
+
+```markdown
+## Acceptance Criteria (E2E)
+
+**Happy path:**
+- [ ] User submits registration form with valid email/password -> 201 response, user record created, confirmation shown
+
+**Error cases:**
+- [ ] Missing required fields -> 422 response, inline validation errors shown
+- [ ] Duplicate email -> 409 response, "email already registered" message shown
+- [ ] Invalid email format -> client-side validation prevents submission
+
+**E2E test plan:**
+- [ ] Integration test: POST /api/users with valid data returns 201 + user object
+- [ ] Integration test: POST /api/users with duplicate email returns 409
+- [ ] E2E test: Fill form -> submit -> see confirmation (if E2E framework available)
+
+**Verification commands:**
+- `just test` - all unit + integration tests pass
+- `just lint` - no lint errors
+- `just build` - build succeeds
+- [ ] Code review approved
+```
+
+**Frontend phases MUST include browser verification:**
+
+```markdown
+- [ ] **Verify in browser** - visual check that UI matches design
+- [ ] Responsive on mobile/tablet/desktop (if applicable)
+- [ ] Accessibility: keyboard navigation, screen reader friendly
+```
+
+**Acceptance criteria must be:**
+- **Specific** - not "works correctly" but "returns 201 with user object"
+- **Verifiable** - can be checked programmatically or with a test command
+- **Complete** - covers happy path, error cases, and edge cases
+- **Testable** - each criterion maps to at least one automated test
+
+**CRITICAL: Each sub-ticket is self-contained**
+
+- Agent should NOT need to read parent issue to implement the phase
+- All relevant context extracted and included
+- Tasks are concrete enough for an agent to execute without clarification
+- Clear acceptance criteria
+- Tests and implementation in ONE task (TDD for features/bugs)
+- Proper label (feature/chore/bug) determines execution workflow
+
+**After each sub-issue created:**
+
+- Record the issue ID
+- Map dependencies using Linear's relationship system
+
+**Dependency linking:**
+
+- For "blocks" relationship: Update blocking issue with link to blocked issue
+- For "blocked by" relationship: Update blocked issue with link to blocking issue
+
+### Phase 5: Document Patterns
+
+**For each sub-issue, enrich with relevant patterns:**
+
+Based on the task type, add pattern references:
+
+```markdown
+## Relevant Patterns
+
+**For backend tasks:**
+- TDD: Follow RED-GREEN-REFACTOR cycle
+- Error handling: Use Result type pattern
+- Validation: Input validation at API boundary
+
+**For frontend tasks:**
+- Component testing: Test user interactions
+- State management: Use [StatePattern] from codebase
+- Accessibility: WCAG 2.1 AA compliance
+
+**For integration tasks:**
+- Contract testing: Verify API contracts
+- Data consistency: Transaction boundaries
+- Retry logic: Exponential backoff pattern
+```
+
+**Update each sub-issue:**
+
+- Linear: `mcp__linear-server__update_issue` with pattern documentation
+- Add these patterns to the description (append to existing content)
+
+### Phase 5.5: Verify Sub-Issue Quality
+
+**Re-read each created sub-issue from PM system and validate required sections:**
+
+```python
+required_sections = [
+    "## Scope",
+    "## Tasks",
+    "## Acceptance Criteria",
+    "## What's Demoable",
+    "## Relevant Context",
+    "## Implementation Guide",
+    "## Parallelisation Notes",
+    "## Dependencies"
+]
+
+for phase_issue in created_sub_issues:
+    issue = mcp__linear_server__get_issue(id=phase_issue.id)
+    description = issue.description
+
+    # Check all required sections
+    missing = [s for s in required_sections if s not in description]
+    if missing:
+        ERROR: f"Sub-issue {phase_issue.id} missing sections: {missing}"
+        STOP  # Fix now - cheapest place to correct (agent just created them)
+
+    # Check for parseable tasks
+    if "### Task" not in description:
+        ERROR: f"Sub-issue {phase_issue.id} has no ### Task headers in Tasks section"
+        STOP
+
+    # TDD checklist required for feature/bug phases
+    label = phase_issue.label  # feature, bug, or chore
+    if label in ["feature", "bug"]:
+        if "## TDD Implementation Checklist" not in description:
+            ERROR: f"Sub-issue {phase_issue.id} ({label}) missing TDD Implementation Checklist"
+            STOP
+
+        # Check tasks have unit test definitions
+        for task in extract_task_headers(description):
+            if "test" not in task.body.lower() and "unit test" not in task.body.lower():
+                WARNING: f"Task '{task.title}' in {phase_issue.id} has no unit test definitions"
+```
+
+### Phase 6: Summary Report
+
+**Present breakdown summary:**
+
+```markdown
+# Breakdown Complete
+
+## Summary
+- Created [N] phase sub-issues in [Team]
+- Each phase is a vertical slice delivering demoable functionality
+- Parallel tracks: [N] (phases with no dependencies)
+- Critical path: [N] phases
+
+## Phases Created
+1. [ISSUE-ID] [Title] - [What's demoable] - Deps: [None/IDs]
+2. [ISSUE-ID] [Title] - [What's demoable] - Deps: [IDs]
+...
+
+## Dependency Graph
+```
+
+ISSUE-1 (Register user: DB+API+UI)
+  └─> ISSUE-2 (Login: session+API+UI)
+       └─> ISSUE-3 (Profile: API+UI)
+
+ISSUE-4 (parallel: settings page)
+
+```
+
+## Ready to Execute
+[N] phases are ready to start (no dependencies): [ISSUE-IDs]
+
+Ready to begin execution?
+```
+
+**Offer handoff to `/execute`**
+
+## Key Principles
+
+| Principle | Application |
+|-----------|-------------|
+| **Vertical phases** | Every phase delivers demoable end-to-end functionality across all necessary layers |
+| **Horizontal tasks** | Tasks within a phase target specific layers (DB, service, API, UI) — one TDD cycle each |
+| **Phases are subtickets, tasks are checklist items** | Never create separate tickets for individual tasks within a phase |
+| **Acceptance criteria per phase** | Every phase has clear, verifiable acceptance criteria with acceptance tests |
+| **TDD structure** | Tasks follow test-first pattern (RED-GREEN-REFACTOR) |
+| **Clear dependencies** | Every dependency between phases explicitly mapped |
+| **Parallel-friendly** | Maximise phases that can start immediately |
+| **Collision prevention** | Tasks within a phase sequenced to avoid conflicts |
+| **Pattern documentation** | Each phase references relevant patterns |
+
+## Red Flags - STOP and Ask
+
+- Parent issue has no design section -> Run `/refine` first
+- Cannot identify vertical slices -> Design too vague, needs rethinking
+- A phase doesn't have demoable behavior -> Not a vertical slice, restructure
+- All phases depend on single blocking phase -> Refactor breakdown
+- Sub-issue has no clear acceptance criteria -> Clarify requirements
+- Tasks within a phase all touch same files -> Sequence them or restructure
+
+## Integration with Other Skills
+
+**Requires completed:**
+
+- `refine` skill (via `/refine` command) - Must have validated Specification
+- `plan` skill (via `/plan` command) - Must have Technical Plan
+
+**Uses during breakdown:**
+
+- `creating-tickets` skill - REQUIRED for all sub-ticket creation (ensures proper labeling)
+
+**Hands off to:**
+
+- `execution` skill (via `/execute` command) - Executes the breakdown with task orchestration
+
+**May reference during breakdown:**
+
+- `test-driven-development` - Pattern for implementation tasks
+- `systematic-debugging` - Pattern for bug fix tasks
+- `using-git-worktrees` - If parallel development needed
+
+## Local Mode (`--local`)
+
+When `--local` flag is set, breakdown writes tasks to `.agents/config.yaml` instead of creating Linear sub-issues for every task detail. This keeps Linear clean for PM/lead visibility while giving the developer a local task store for execution.
+
+### How Local Mode Differs
+
+| Step | Linear Mode (default) | Local Mode (`--local`) |
+|------|----------------------|------------------------|
+| **Phase 1: Load Context** | Same | Same |
+| **Phase 2: Extract Phases** | Same | Same |
+| **Phase 3: Create Tasks** | Same | Same |
+| **Phase 4: Create Sub-Issues** | Full sub-issues in Linear with all task details | **Write to config.yaml** + optional lightweight Linear issues |
+| **Phase 5: Map Dependencies** | Linear relationship links | **Dependencies in config.yaml** |
+| **Phase 5.5: Verify Quality** | Re-read from Linear | **Re-read from config.yaml** |
+
+### Phase 4 in Local Mode: Write Config
+
+Instead of creating full Linear sub-issues, write the breakdown to `.agents/config.yaml`:
+
+```python
+# 1. Build config structure
+config = {
+    'version': '1.0',
+    'source': {
+        'type': 'linear',
+        'ref': parent_issue.identifier,
+        'raw_title': parent_issue.title
+    },
+    'mandate': {
+        'objective': extract_objective(parent_issue),
+        'constraints': extract_constraints(parent_issue),
+        'acceptance_criteria': extract_acceptance_criteria(parent_issue)
+    },
+    'platform': {
+        'git_remote': detect_git_remote(),
+        'default_branch': detect_default_branch(),
+        'linear': {
+            'team': parent_issue.team.key,
+            'parent_issue': parent_issue.identifier,
+            'sync_phases': True,    # Create phase-level issues
+            'sync_tasks': False     # Never push task-level
+        }
+    },
+    'phases': phases_with_tasks,  # Full breakdown
+    'quality_gates': read_quality_gates(),
+    'skills': read_skills_config(),
+    'circuit_breakers': default_circuit_breakers()
+}
+
+# 2. Write to .agents/config.yaml
+# Preserve existing dev_state if present
+write_config(config)
+```
+
+### Optional Phase-Level Linear Issues
+
+In local mode, optionally create **lightweight** Linear issues for PM visibility:
+
+```python
+if config['platform']['linear']['sync_phases']:
+    for phase in phases:
+        # Create minimal Linear issue — title + scope only
+        phase_issue = mcp__linear_server__create_issue(
+            teamId=team_id,
+            title=f"Phase {phase['number']}: {phase['name']}",
+            description=f"""## Scope
+{phase['scope']}
+
+## What's Demoable
+{format_list(phase['whats_demoable'])}
+
+## Acceptance Criteria
+{format_list(phase['acceptance_criteria'])}
+
+_Task details tracked locally in .agents/config.yaml_
+""",
+            parentId=parent_issue.id
+        )
+        # Store Linear issue ID in config for status sync later
+        phase['linear_issue'] = phase_issue.identifier
+```
+
+### Phase 5 in Local Mode: Dependencies in Config
+
+Instead of Linear relationship links, dependencies are stored in config.yaml:
+
+```yaml
+phases:
+  - name: "Register a user"
+    dependencies:
+      blocked_by: []
+      blocks: ["Log in", "View profile"]
+  - name: "Log in"
+    dependencies:
+      blocked_by: ["Register a user"]
+      blocks: ["View profile"]
+```
+
+### Phase 5.5 in Local Mode: Verify Config Quality
+
+Re-read config.yaml and validate all required fields:
+
+```python
+config = yaml_load('.agents/config.yaml')
+for phase in config['phases']:
+    assert phase.get('name'), "Phase missing name"
+    assert phase.get('label') in ('feature', 'chore', 'bug'), "Phase missing valid label"
+    assert phase.get('tasks'), "Phase missing tasks"
+    assert phase.get('acceptance_criteria'), "Phase missing acceptance criteria"
+    for task in phase['tasks']:
+        assert task.get('id'), "Task missing id"
+        assert task.get('title'), "Task missing title"
+        assert task.get('worker_persona'), "Task missing worker_persona"
+        assert task.get('size') in ('small', 'medium'), "Task missing valid size"
+```
+
+### Summary Report (Local Mode)
+
+```markdown
+# Breakdown Complete (Local Mode)
+
+## Summary
+- Wrote N phases with M total tasks to .agents/config.yaml
+- Created N lightweight Linear issues for PM visibility (optional)
+- Each phase is a vertical slice delivering demoable functionality
+
+## Phases
+1. Register a user (3 tasks) - no dependencies - Linear: FEAT-101
+2. Log in (4 tasks) - blocked by Phase 1 - Linear: FEAT-102
+...
+
+## Local Files
+- .agents/config.yaml — full task breakdown
+- `dev_state.plan_file` (e.g. `plans/plan-alm-122.md`) — human-readable plan
+
+Ready to execute? Run `/execute FEAT-100 --local`
+```
+
+## Remember
+
+- **Phases = vertical slices** — each delivers demoable end-to-end functionality with acceptance criteria and acceptance tests
+- **Tasks = horizontal layer-specific units** — each targets one layer (DB, service, API, UI) within a vertical phase
+- **Phases are subtickets, tasks are checklist items** — never create separate tickets for tasks
+- **Local mode (`--local`):** Tasks go to config.yaml, not Linear. Phase-level Linear issues optional for PM visibility.
+- Map all dependencies between phases (blocks, blocked-by, related)
+- Note parallelisation opportunities and collision risks within phases
+- Document relevant patterns in each sub-issue or config.yaml phase
+- Create TodoWrite todos for tracking sub-issue creation
+- Verify parent issue has design before starting
+- Offer handoff to `/execute` when complete
+
+## Additional Resources
+
+- [Task Structure Guide](resources/task-structure-guide.md) - Detailed task breakdown rules and anti-patterns
+- [Granularity Examples](resources/granularity-examples.md) - Vertical slicing examples for different project types
+- [Dependency Patterns](resources/dependency-patterns.md) - Common dependency graph patterns

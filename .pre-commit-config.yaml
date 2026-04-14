@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cursor-rules-fresh
+        name: "cursor rules: verify .cursor/rules matches skills/"
+        entry: uv run python -m scripts.check_cursor_rules_fresh
+        language: system
+        pass_filenames: false
+        files: "^(skills/.*/SKILL\\.md|scripts/generate_cursor_rules\\.py|scripts/check_cursor_rules_fresh\\.py)$"

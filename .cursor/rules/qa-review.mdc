@@ -1,0 +1,274 @@
+---
+description: Review a repository for QA readiness in agentic engineering workflows.
+  Assesses against the Tiered Test Gate framework (Tiers 0-5) and produces actionable
+  recommendations mapped to foundations skills.
+globs: ''
+alwaysApply: false
+---
+
+> **Cursor-compatibility note:** This skill was authored for Claude Code and references Claude-only features (Task-tool agent dispatch and/or `Skill()` cross-calls). In Cursor, adapt those steps — agent dispatch is not available; invoke the referenced skill manually or have the agent perform the work inline.
+
+# QA Readiness Review
+
+## Overview
+
+Analyse any repository against the Tiered Test Gate framework to produce a QA readiness assessment and actionable recommendations for agentic engineering workflows.
+
+**Core principle:** Agents need fast, reliable feedback loops to self-verify. A repository's QA infrastructure determines whether agents can operate autonomously or require constant human intervention.
+
+**Entry point:** `/qa-review [path-to-repo]`
+
+Announce: "I'm running a QA readiness review against the Tiered Test Gate framework."
+
+---
+
+## The Tiered Test Gate Framework
+
+| Tier | Stage | Gate | Target Duration | Key Question |
+|------|-------|------|-----------------|--------------|
+| 0 | Local / Pre-commit | Before code leaves developer | <30s | Can agents self-check instantly? |
+| 1 | Branch / PR | Before review begins | <5min | Does CI catch issues before humans review? |
+| 2 | Merge to main | Before code reaches main | <15min | Are merge gates comprehensive? |
+| 3 | On-demand E2E | Acceptance / integration suites | <30min | Do end-to-end tests exist and pass? |
+| 4 | Performance | Load, stress, benchmarks | Variable | Are performance regressions detectable? |
+| 5 | Security / Compliance | SAST, DAST, dependency audit | Variable | Are security scans configured? |
+
+See `references/tiered-test-framework.md` for full tier definitions, scoring criteria, and agentic readiness requirements.
+
+---
+
+## Workflow
+
+Execute these phases sequentially. Each phase builds on prior findings.
+
+### Phase 1: Repository Scan
+
+Map the repository structure and technology stack.
+
+```bash
+tree -L 3 -d -I 'node_modules|.git|__pycache__|.venv|dist|build|target|vendor|.next|.nuxt'
+```
+
+Detect languages and frameworks by looking for:
+- `package.json` (Node.js/TypeScript)
+- `pyproject.toml`, `setup.py`, `setup.cfg` (Python)
+- `go.mod` (Go)
+- `Cargo.toml` (Rust)
+- `pom.xml`, `build.gradle` (Java/Kotlin)
+- `Gemfile` (Ruby)
+- `composer.json` (PHP)
+- `*.csproj`, `*.sln` (C#/.NET)
+
+Record: languages detected, monorepo vs single-project, approximate size (file count).
+
+### Phase 2: Detect Testing Infrastructure
+
+Glob for test file patterns across the repository. Use the detection catalog in `references/detection-patterns.md`.
+
+For each detected test framework:
+1. Read the framework config file
+2. Count test files matching framework patterns
+3. Categorise tests by type: unit, integration, e2e, acceptance, contract
+4. Note test runner commands
+
+Produce a summary table of detected test frameworks, file counts, and test types.
+
+### Phase 3: Detect Quality Gates
+
+Search for pre-commit hooks and static analysis:
+
+1. **Pre-commit hooks** - `.pre-commit-config.yaml`, `.husky/*`, `.git/hooks/*`, `lefthook.yml`
+2. **Linter configs** - ESLint, Prettier, Ruff, Mypy, Pylint, Biome, Clippy, golangci-lint
+3. **Type checking** - `tsconfig.json` (check `strict` mode), `mypy.ini`, `pyrightconfig.json`
+4. **Static analysis** - SonarQube, CodeClimate, Semgrep configs
+
+For each detected tool, read the config and note what rules/strictness are enforced.
+
+### Phase 4: Detect CI/CD Pipeline
+
+Search for CI configuration files:
+- `.github/workflows/*.yml` (GitHub Actions)
+- `Jenkinsfile` (Jenkins)
+- `.circleci/config.yml` (CircleCI)
+- `.gitlab-ci.yml` (GitLab CI)
+- `azure-pipelines.yml` (Azure DevOps)
+- `bitbucket-pipelines.yml` (Bitbucket)
+
+For each detected pipeline:
+1. Read the full config
+2. Map which checks/tests run at each stage
+3. Identify what blocks PRs vs what is advisory
+4. Note parallel vs sequential job structure
+5. Look for branch protection indicators (required status checks)
+
+### Phase 5: Detect Testing Abstractions
+
+Search for task runners and command abstractions:
+
+1. **justfile** - Read recipes, check for `test`, `lint`, `format`, `build`
+2. **Makefile** - Read targets for testing/quality commands
+3. **package.json scripts** - Read `scripts` section
+4. **tox.ini / noxfile.py** - Read test environment definitions
+5. **Taskfile.yml / Rakefile** - Read task definitions
+
+Evaluate:
+- Do standard commands exist? (`test`, `lint`, `format`, `build`)
+- Are commands composable? (unit-only, integration-only, all)
+- Is the interface consistent across modules (monorepo)?
+- Can an agent run quality checks with a single command?
+
+### Phase 6: Assess Acceptance Criteria Quality
+
+Search for structured test patterns:
+
+1. **BDD/Gherkin** - Glob for `*.feature` files, cucumber/behave configs
+2. **GIVEN/WHEN/THEN** - Grep test files for structured acceptance patterns
+3. **Descriptive naming** - Sample test files for `should...`, `it(...)`, behaviour-focused names
+4. **AAA pattern** - Sample test files for Arrange/Act/Assert structure
+5. **Test documentation** - Check for test READMEs, test plans, acceptance criteria in tickets
+
+Rate the quality of test expressiveness: do tests communicate intent clearly?
+
+### Phase 7: Detect Agent Context
+
+Check for agent-enabling documentation and configuration:
+
+1. **CLAUDE.md** - Does it exist? Is it comprehensive or minimal?
+2. **Module-level CLAUDE files** - `find . -name "CLAUDE*.md"`
+3. **PM integration** - Is a project management section present in CLAUDE.md?
+4. **Conventional commits** - Are commit conventions documented or enforced?
+
+Record: what context exists for agents to orient themselves in the repository.
+
+### Phase 8: Score & Report
+
+Score each tier 0-5 on a 0-10 scale using the rubric in `references/tiered-test-framework.md`.
+
+Calculate overall agentic QA readiness:
+- **Ready** (overall >= 7, Tier 0+1 both >= 7): Agents can self-verify effectively
+- **Partial** (overall >= 4, Tier 0+1 both >= 4): Agents can operate with some human oversight
+- **Not Ready** (overall < 4 or any Tier 0/1 < 3): Agents need significant human verification
+
+Generate the full report using the template in `references/tiered-test-framework.md`.
+
+### Phase 9: Generate Foundations Recommendations
+
+**This is critical.** After scoring, map every identified gap to a concrete remediation action from our best-practice skills. Use the mapping table below to generate a **Foundations Recommendations** section in the report.
+
+#### Gap-to-Skill Mapping
+
+| Gap Detected | Recommendation | Skill / Command |
+|---|---|---|
+| No CLAUDE.md or outdated documentation | Generate comprehensive agent documentation | `Skill(generating-agent-documentation)` |
+| No justfile or inconsistent test/lint/format commands | Create standardised justfile with `test`, `lint`, `format`, `build` recipes | `Skill(writing-justfiles)` |
+| No pre-commit hooks or missing conventional commits | Configure pre-commit hooks with quality checks and conventional commit validation | `Skill(setting-up-pre-commit)` |
+| No PM integration or missing PM metadata in CLAUDE.md | Configure Linear/JIRA/GitHub Issues integration | `Skill(configuring-project-management)` |
+| Multiple gaps across documentation, justfiles, pre-commit, and PM | Run full foundations setup (orchestrates all four skills) | `/setup` |
+| No unit tests or low test coverage | Write tests using TDD workflow (RED-GREEN-REFACTOR) | `Skill(test-driven-development)` |
+| Tests exist but no TDD enforcement | Adopt TDD workflow for new features and bug fixes | `Skill(test-driven-development)` |
+| Justfile exists but missing `test PATH` parameter | Update justfile test recipe to accept optional PATH for TDD | `Skill(writing-justfiles)` |
+| Pre-commit exists but no language-specific hooks | Add language-appropriate linting/formatting hooks | `Skill(setting-up-pre-commit)` |
+| CI pipeline exists but tests are advisory-only | Configure required status checks / branch protection | Manual: enable branch protection rules in GitHub/GitLab |
+| No E2E test framework | Evaluate Playwright (recommended) or Cypress for E2E coverage | Manual: install E2E framework, create initial smoke tests |
+| No security scanning | Add Dependabot/Renovate for dependency updates, consider gitleaks for secret detection | Manual: add `.github/dependabot.yml` or `renovate.json` |
+| No performance testing | Add benchmark suite or load tests for performance-critical paths | Manual: add k6/Locust scripts for critical endpoints |
+| CI/CD pipeline quality gaps (caching, hardening, security, agentic review) | Run dedicated CI/CD pipeline review for detailed assessment | `/cicd-review` |
+
+#### Generating the Recommendations Section
+
+For each gap found during Phases 1-7, emit a recommendation block:
+
+```markdown
+### [Priority]: [Gap Title]
+
+**Current state:** [What was detected or not detected]
+**Target state:** [What best practice looks like]
+**Action:** Run `Skill(<skill-name>)` or `/setup`
+**Impact:** [Which tier(s) this improves and by how much]
+```
+
+Group recommendations by priority:
+
+1. **Critical** - Tier 0 or Tier 1 gaps that prevent agents from self-verifying. These must be addressed before starting DLC workflows.
+2. **Important** - Gaps that reduce agent effectiveness but don't block workflows entirely.
+3. **Nice-to-Have** - Higher-tier gaps (Tier 3-5) that improve overall maturity.
+
+#### Quick-Start Recommendation
+
+If 2+ critical gaps exist that map to foundations skills, always recommend:
+
+```markdown
+### Quick Start
+
+Multiple foundation gaps detected. Run the full setup to address them all:
+
+\`\`\`
+/setup
+\`\`\`
+
+This will walk you through:
+1. Project management configuration
+2. CLAUDE.md documentation generation
+3. Justfile creation with standard recipes
+4. Pre-commit hook setup with conventional commits
+```
+
+### Phase 10: Present and Save
+
+After generating the report, ask:
+
+```
+AskUserQuestion: "Save report to repository?"
+  - "Yes, save as QA-READINESS-REVIEW.md" (Recommended)
+  - "No, display only"
+```
+
+---
+
+## Scoring Rubric (Quick Reference)
+
+| Score | Meaning | Criteria |
+|-------|---------|----------|
+| 0 | Absent | Nothing detected for this tier |
+| 1-3 | Minimal | Some tooling exists but incomplete or misconfigured |
+| 4-6 | Moderate | Core tooling in place, gaps in coverage or speed |
+| 7-8 | Strong | Comprehensive tooling, fast feedback, few gaps |
+| 9-10 | Exemplary | Best-in-class, optimised for speed and reliability |
+
+See `references/tiered-test-framework.md` for detailed per-tier scoring criteria.
+
+---
+
+## Report Output
+
+Generate a markdown report with these sections:
+
+1. **Executive Summary** - Overall score, agentic readiness status, primary constraint
+2. **Tier Assessment** - Table with scores and status for each tier 0-5
+3. **Pipeline Stage Analysis** - Write/Check/Test/Review/Deploy findings
+4. **Testing Infrastructure Detected** - Frameworks, tools, CI platform, abstractions
+5. **Tier-by-Tier Detail** - Detailed findings per tier with what exists and what is missing
+6. **Foundations Recommendations** - Prioritised, actionable recommendations mapped to skills
+7. **Agentic Engineering Readiness** - Can agents self-verify? Are feedback loops fast? Are tests trustworthy?
+
+Full report template is in `references/tiered-test-framework.md`.
+
+---
+
+## References
+
+- **`references/tiered-test-framework.md`** - Full tier definitions, scoring criteria, agentic readiness requirements, pipeline stage assessment, report template
+- **`references/detection-patterns.md`** - Comprehensive catalog of file patterns, grep patterns, and config locations for all testing categories
+
+---
+
+## Remember
+
+- **Score what exists, not what could exist** - Report facts, not aspirations
+- **Tier 0+1 are most critical for agentic development** - Fast local feedback is non-negotiable
+- **Absence of detection does not mean absence of testing** - Note when tooling may exist but is not detectable via file patterns
+- **Always map gaps to specific skills** - Every recommendation should name the skill or command that closes the gap
+- **Recommend `/setup`** when multiple foundation gaps exist
+- **Recommend justfile abstraction** when testing commands are inconsistent or hard to discover
+- **Keep recommendations actionable** - Each recommendation should have a clear next step
+- **Ask before saving** - Always confirm with user before writing the report file

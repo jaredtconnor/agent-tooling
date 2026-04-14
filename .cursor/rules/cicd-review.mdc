@@ -1,0 +1,320 @@
+---
+description: Review CI/CD pipeline quality against the 5-pillar framework (Build,
+  Integration & E2E Tests, Static Analysis, Security, Agentic PR Review). Scores each
+  pillar 0-10, pulls live GitHub data, and generates actionable recommendations mapped
+  to platform-engineer and foundations skills.
+globs: ''
+alwaysApply: false
+---
+
+> **Cursor-compatibility note:** This skill was authored for Claude Code and references Claude-only features (Task-tool agent dispatch and/or `Skill()` cross-calls). In Cursor, adapt those steps — agent dispatch is not available; invoke the referenced skill manually or have the agent perform the work inline.
+
+# CI/CD Pipeline Review
+
+## Overview
+
+Analyse any repository's CI/CD pipelines against the 5-pillar framework to produce a quality assessment and actionable recommendations for improvement.
+
+**Core principle:** CI/CD pipelines are the outer feedback loop for agentic development. Build speed, test coverage in CI, static analysis enforcement, security scanning, and AI-assisted review together determine whether agents can ship with confidence.
+
+**Entry point:** `/cicd-review [path-to-repo]`
+
+Announce: "I'm running a CI/CD pipeline review against the 5-pillar framework."
+
+---
+
+## The 5-Pillar Framework
+
+| Pillar | Focus | Key Question |
+|--------|-------|--------------|
+| 1. Build | Compilation, bundling, caching, multi-stage | Are builds fast, cached, and reproducible? |
+| 2. Integration & E2E Tests | API contracts, service containers, E2E in CI | Does the pipeline run comprehensive integration/E2E tests? |
+| 3. Static Analysis / Code Quality | Linters, type checking, complexity, coverage | Are code quality tools enforced in CI? |
+| 4. Security Scanning | SAST, dependency audit, secrets detection, hardening | Are security scans configured and blocking? |
+| 5. Agentic PR Review | AI review tools, CODEOWNERS, PR templates | Is there automated/AI-assisted PR review? |
+
+See `references/cicd-best-practices.md` for full pillar definitions, scoring criteria, and best-practice patterns.
+
+---
+
+## Workflow
+
+Execute these phases sequentially. Each phase builds on prior findings.
+
+### Phase 1: Detect CI Platform
+
+Search for CI configuration files:
+
+- `.github/workflows/*.yml` / `.github/workflows/*.yaml` (GitHub Actions) — **primary platform**
+- `Jenkinsfile` (Jenkins)
+- `.circleci/config.yml` (CircleCI)
+- `.gitlab-ci.yml` (GitLab CI)
+- `azure-pipelines.yml` (Azure DevOps)
+- `bitbucket-pipelines.yml` (Bitbucket)
+
+Record which platforms are detected. If none found, report "No CI/CD pipeline detected" and recommend `Task(platform-engineer)` to set one up.
+
+### Phase 2: Read All Workflow Files
+
+For each detected CI platform, read every configuration file in full. For GitHub Actions:
+
+```bash
+# Read all workflow files
+Glob(".github/workflows/*.yml")
+Glob(".github/workflows/*.yaml")
+```
+
+Also check for:
+- Reusable workflows in `.github/workflows/` (files with `workflow_call` trigger)
+- Composite actions in `.github/actions/*/action.yml`
+- Shared action configs in `.github/`
+
+Record: total workflow count, job count per workflow, trigger types, reusable workflow usage.
+
+### Phase 3: Review GitHub Context
+
+Use `gh` CLI to pull live pipeline data. If `gh` is unavailable or the repo is not GitHub-hosted, skip this phase gracefully and note "Live data unavailable — scoring based on static config analysis only" in the report.
+
+```bash
+# Recent workflow runs — pass/fail rates, durations
+gh run list --limit 20
+
+# Recent failures — flaky tests, build issues
+gh run list --status failure --limit 10
+
+# Recent merged PRs — review patterns
+gh pr list --state merged --limit 10
+
+# Cache utilisation
+gh api repos/{owner}/{repo}/actions/cache/usage
+
+# Branch protection rules
+gh api repos/{owner}/{repo}/branches/{default_branch}/protection
+
+# Configured secrets (names only)
+gh secret list
+
+# Open Dependabot alerts count
+gh api repos/{owner}/{repo}/dependabot/alerts --jq 'length'
+
+# Open code scanning alerts count
+gh api repos/{owner}/{repo}/code-scanning/alerts --jq 'length'
+```
+
+Derive the `{owner}/{repo}` from `gh repo view --json nameWithOwner --jq .nameWithOwner` and the default branch from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`.
+
+Record: run pass rate, average duration, failure patterns, cache hit rate, branch protection status, alert counts.
+
+### Phase 4: Assess Pillar 1 — Build
+
+Evaluate build configuration quality. Look for:
+
+- **Caching:** `actions/cache`, language-specific caching (`actions/setup-node` with cache, `actions/setup-python` with cache), Docker layer caching (BuildX `type=local`)
+- **Shallow checkout:** `fetch-depth: 1` on `actions/checkout` (avoids cloning full git history)
+- **Matrix builds:** `strategy.matrix` for multi-version/multi-OS testing
+- **Concurrency:** `concurrency` groups to cancel redundant builds
+- **Timeouts:** `timeout-minutes` set on jobs
+- **Path filters:** `paths` / `paths-ignore` on triggers to avoid unnecessary builds
+- **Selective execution:** `dorny/paths-filter` or similar for conditional job/step execution based on changed files
+- **Multi-stage builds:** Docker multi-stage, build artifacts passed between jobs
+- **Build artifacts:** `actions/upload-artifact` / `actions/download-artifact`
+- **Larger runners:** Use of GitHub larger runners or self-hosted runners for compute-intensive builds (note: larger runners require Team/Enterprise plan and cost more per minute — only recommend when build times are a proven bottleneck and caching/parallelism are already optimised)
+- **Live data:** Cache hit rates from Phase 3, average run durations
+
+Score using rubric in `references/cicd-best-practices.md`.
+
+### Phase 5: Assess Pillar 2 — Integration & E2E Tests
+
+Evaluate test coverage in CI. Look for:
+
+- **Service containers:** `services` blocks (databases, Redis, etc.)
+- **Test jobs:** Separate test jobs/steps, test matrix with `fail-fast: false` for comprehensive reporting
+- **E2E tests:** Playwright, Cypress, Selenium steps in workflows
+- **Contract tests:** Pact, Dredd, or similar contract testing
+- **Test result reporting:** `dorny/test-reporter`, `mikepenz/action-junit-report`, or similar for PR-level test annotations and check run summaries
+- **Job summaries:** `$GITHUB_STEP_SUMMARY` usage for rich markdown feedback on test results
+- **Test artifacts:** Test reports (JUnit XML, HTML coverage) uploaded as artifacts
+- **Test splitting:** Parallel test execution, test sharding
+- **Flaky test management:** Retry mechanisms, quarantine patterns, flakiness tracking
+- **Live data:** Failure patterns from Phase 3 (flaky tests, recurring failures)
+
+Score using rubric in `references/cicd-best-practices.md`.
+
+### Phase 6: Assess Pillar 3 — Static Analysis / Code Quality
+
+Evaluate code quality enforcement in CI. Look for:
+
+- **Linters:** ESLint, Ruff, Pylint, golangci-lint, Clippy steps
+- **Type checking:** TypeScript (`tsc --noEmit`), Mypy, Pyright steps
+- **PR annotations:** Linter/type checker output surfaced as inline annotations on the PR diff (via `--format github` or `reviewdog`)
+- **Code scanning:** CodeQL, Semgrep, SonarQube steps
+- **Coverage:** Coverage collection and reporting (Codecov, Coveralls, built-in)
+- **Coverage gates:** Minimum coverage thresholds that block PRs
+- **Complexity analysis:** Cyclomatic complexity checks
+- **Live data:** Open code scanning alert count from Phase 3
+
+Score using rubric in `references/cicd-best-practices.md`.
+
+### Phase 7: Assess Pillar 4 — Security Scanning
+
+Evaluate security posture. Look for:
+
+- **SAST:** CodeQL, Semgrep, Snyk Code, or similar
+- **Dependency scanning:** Dependabot, Renovate, `npm audit`, `pip-audit`, Snyk
+- **Secrets detection:** Gitleaks, TruffleHog, or similar pre-commit/CI checks
+- **SHA-pinned actions:** Actions referenced by SHA vs tag (e.g., `actions/checkout@v4` vs `actions/checkout@<sha>`)
+- **Minimal permissions:** `permissions: {}` at workflow level, scoped per-job
+- **OIDC:** `id-token: write` for cloud authentication instead of long-lived secrets
+- **No dangerous patterns:** `pull_request_target` with PR checkout, `${{ github.event }}` in `run:`
+- **Environment-based deployments:** Protected environments for production
+- **Live data:** Open Dependabot alert count, branch protection rules from Phase 3
+
+Score using rubric in `references/cicd-best-practices.md`.
+
+### Phase 8: Assess Pillar 5 — Agentic PR Review
+
+Evaluate AI-assisted and automated review. Look for:
+
+- **AI review tools:** Claude, Copilot, CodeRabbit, Codium, Sourcery, or similar in workflows or GitHub Apps
+- **CODEOWNERS:** `.github/CODEOWNERS` file with meaningful ownership
+- **PR templates:** `.github/pull_request_template.md` or `.github/PULL_REQUEST_TEMPLATE/`
+- **Required reviewers:** Branch protection requiring review approvals (from Phase 3)
+- **Merge queue:** `merge_group` event trigger, branch protection merge queue settings
+- **Auto-merge:** Dependabot auto-merge, merge queues
+- **Live data:** PR review patterns from recently merged PRs (Phase 3)
+
+Score using rubric in `references/cicd-best-practices.md`.
+
+### Phase 9: Assess Workflow Hygiene
+
+Cross-cutting concerns across all workflows:
+
+- **Reusable workflows:** `workflow_call` trigger, DRY across workflows
+- **Job dependencies:** `needs` clauses for correct ordering and parallelism
+- **Trigger hygiene:** Appropriate triggers (not just `push` to all branches)
+- **Naming:** Descriptive workflow and job names
+- **Documentation:** Comments in workflow files
+- **Composite actions:** Shared logic extracted to composite actions
+
+Note hygiene findings but do not score separately — fold into relevant pillar scores.
+
+### Phase 10: Score & Report
+
+Score each pillar 0-10 using the rubrics in `references/cicd-best-practices.md`.
+
+Calculate overall pipeline maturity:
+
+- **Mature** (overall average >= 7, Build + Security both >= 7): Pipeline is production-grade with strong caching, comprehensive security, and automated review
+- **Developing** (overall average >= 4, Build >= 4): Pipeline has core functionality but significant gaps in coverage or hardening
+- **Immature** (overall average < 4 or Build < 3): Pipeline needs fundamental improvements before supporting confident deployments
+
+Generate the full report using the template in `references/cicd-best-practices.md`.
+
+### Phase 11: Present and Save
+
+After generating the report, ask:
+
+```
+AskUserQuestion: "Save report to repository?"
+  - "Yes, save as CICD-PIPELINE-REVIEW.md" (Recommended)
+  - "No, display only"
+```
+
+---
+
+## Scoring Rubric (Quick Reference)
+
+| Score | Meaning | Criteria |
+|-------|---------|----------|
+| 0 | Absent | Nothing detected for this pillar |
+| 1-3 | Minimal | Some tooling exists but incomplete or misconfigured |
+| 4-6 | Moderate | Core tooling in place, gaps in coverage or hardening |
+| 7-8 | Strong | Comprehensive tooling, well-configured, few gaps |
+| 9-10 | Exemplary | Best-in-class, optimised for speed, security, and reliability |
+
+See `references/cicd-best-practices.md` for detailed per-pillar scoring criteria.
+
+---
+
+## Gap-to-Action Mapping
+
+| Gap Detected | Recommendation | Action |
+|---|---|---|
+| No CI/CD pipeline at all | Set up GitHub Actions with build, test, and lint workflows | `Task(platform-engineer)` |
+| No caching configured | Add dependency and build caching to reduce build times | `Task(platform-engineer)` |
+| No concurrency controls | Add concurrency groups to cancel redundant workflow runs | `Task(platform-engineer)` |
+| No path filters | Add path-based triggers to avoid unnecessary builds | `Task(platform-engineer)` |
+| No integration/E2E tests in CI | Add service containers and E2E test jobs | `Task(platform-engineer)` |
+| No static analysis in CI | Add linting, type checking, and code scanning to workflows | `Task(platform-engineer)` |
+| No security scanning | Add CodeQL, dependency scanning, and secrets detection | `Task(platform-engineer)` |
+| Actions not SHA-pinned | Pin all third-party actions to commit SHAs | `Task(platform-engineer)` |
+| Overly permissive permissions | Add `permissions: {}` at workflow level, scope per-job | `Task(platform-engineer)` |
+| No CODEOWNERS | Create CODEOWNERS file with meaningful ownership | `Task(platform-engineer)` |
+| No PR template | Create PR template with checklist and context sections | `Task(platform-engineer)` |
+| No AI-assisted review | Evaluate and configure AI code review tooling | `Task(platform-engineer)` |
+| No test result reporting | Add test reporter for PR annotations and check run summaries | `Task(platform-engineer)` |
+| No selective execution | Add `dorny/paths-filter` to run only affected checks per changed files | `Task(platform-engineer)` |
+| Full git clone in CI | Add `fetch-depth: 1` to checkout steps for faster clones | `Task(platform-engineer)` |
+| `fail-fast: true` on matrix | Set `fail-fast: false` for comprehensive test reporting across all matrix jobs | `Task(platform-engineer)` |
+| No PR annotations from linters | Configure linter output format for GitHub annotations (`--format github`, `reviewdog`) | `Task(platform-engineer)` |
+| No flaky test management | Add retry/quarantine strategy for flaky tests | `Task(platform-engineer)` |
+| No branch protection | Enable required status checks and review approvals | Manual: configure branch protection in GitHub settings |
+| No pre-commit hooks for quality | Set up pre-commit hooks for local quality gates | `Skill(setting-up-pre-commit)` |
+| No justfile for CI commands | Create justfile with standardised CI-compatible recipes | `Skill(writing-justfiles)` |
+| Multiple foundation gaps | Run full foundations setup | `/setup` |
+| CI/CD pipeline quality gaps (caching, hardening, security, agentic review) | Run dedicated CI/CD pipeline review for detailed assessment | `/cicd-review` |
+
+### Generating Recommendations
+
+For each gap found during Phases 4-9, emit a recommendation block:
+
+```markdown
+### [Priority]: [Gap Title]
+
+**Current state:** [What was detected or not detected]
+**Target state:** [What best practice looks like]
+**Action:** `Task(platform-engineer)` with description of what to implement
+**Impact:** [Which pillar(s) this improves and by how much]
+```
+
+Group recommendations by priority:
+
+1. **Critical** — Build or Security pillar gaps below 4. These affect deployment confidence and supply chain safety.
+2. **Important** — Gaps that reduce pipeline efficiency or coverage but don't block deployments.
+3. **Nice-to-Have** — Improvements that enhance developer experience or add defence-in-depth.
+
+---
+
+## Report Output
+
+Generate a markdown report with these sections:
+
+1. **Executive Summary** — Overall score, maturity level, primary constraint
+2. **Pillar Assessment** — Table with scores and status for each pillar 1-5
+3. **Live Pipeline Data** — Run pass rate, average duration, cache usage, alert counts (if available)
+4. **Pillar-by-Pillar Detail** — Detailed findings per pillar with what exists and what is missing
+5. **Workflow Hygiene** — Cross-cutting findings on reusable workflows, triggers, naming
+6. **Recommendations** — Prioritised, actionable recommendations mapped to `Task(platform-engineer)` or foundations skills
+7. **GitHub Actions Hardening** — Security-specific checklist with pass/fail status
+
+Full report template is in `references/cicd-best-practices.md`.
+
+---
+
+## References
+
+- **`references/cicd-best-practices.md`** — Full pillar definitions, scoring criteria, detection patterns, hardening checklist, `gh` CLI commands, example snippets, gap-to-action mapping, and report template
+
+---
+
+## Remember
+
+- **Score what exists, not what could exist** — Report facts, not aspirations
+- **Build and Security are the critical pillars** — A pipeline with slow builds or no security scanning cannot support confident deployments
+- **Pull live data when possible** — Static config analysis misses runtime issues like flaky tests, cache misses, and unresolved alerts
+- **Gracefully degrade without `gh`** — If `gh` CLI is unavailable, note it and score based on config only
+- **GitHub Actions is the primary platform** — Provide detailed scoring for GH Actions; other platforms get detection and generic recommendations
+- **Map gaps to `Task(platform-engineer)`** — The platform-engineer agent implements CI/CD improvements
+- **Map foundation gaps to foundations skills** — Pre-commit, justfile, and documentation gaps use foundations skills
+- **Keep recommendations actionable** — Each recommendation should have a clear next step with a specific agent or skill
+- **Ask before saving** — Always confirm with user before writing the report file
