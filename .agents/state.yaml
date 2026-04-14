@@ -5,24 +5,24 @@ started_at: "2026-04-13"
 phases:
   - id: p1-walking-skeleton
     name: "Walking skeleton: one skill → one .mdc"
-    status: in_progress
+    status: completed
     tasks:
-      t1.1: pending
-      t1.2: pending
-      t1.3: pending
+      t1.1: completed
+      t1.2: completed
+      t1.3: completed
   - id: p2-full-coverage-and-freshness
     name: "Full coverage + pre-commit freshness"
-    status: pending
+    status: completed
     tasks:
-      t2.1: pending
-      t2.2: pending
-      t2.3: pending
-      t2.4: pending
+      t2.1: completed
+      t2.2: completed
+      t2.3: completed
+      t2.4: completed
   - id: p3-docs-and-verification
     name: "Docs + verification"
-    status: pending
+    status: completed
     tasks:
-      t3.1: pending
-      t3.2: pending
-      t3.3: pending
-      t3.4: pending
+      t3.1: completed
+      t3.2: completed
+      t3.3: completed
+      t3.4: completed  # smoke test doc written; manual verification pending

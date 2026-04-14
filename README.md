@@ -18,6 +18,73 @@ Dotbot creates directory-level symlinks so both tools see the same source of tru
 
 Adding a file in the right directory makes it available immediately after `just link`.
 
+## Dual-tool architecture (SKILL.md → .cursor/rules)
+
+Claude Code reads `skills/<name>/SKILL.md` directly. Cursor reads `.cursor/rules/<name>.mdc`. Rather than maintain both by hand, `SKILL.md` is the canonical source and a generator produces `.mdc` output that is committed and kept fresh by a pre-commit hook.
+
+```
+skills/<name>/SKILL.md  ──parse──►  scripts/generate_cursor_rules.py
+                                                │
+                                                ▼
+                                  .cursor/rules/<name>.mdc
+                                  (committed, auto-attach)
+                                                ▲
+                        pre-commit ──freshness check──┘
+```
+
+**Generate / verify locally:**
+
+```bash
+# Regenerate all rules
+uv run python -m scripts.generate_cursor_rules skills/
+
+# Verify committed tree matches the generator
+uv run python -m scripts.check_cursor_rules_fresh
+
+# Run the test suite
+uv run pytest
+```
+
+**One-time pre-commit install** (blocks commits that leave `.cursor/rules/` stale):
+
+```bash
+uv tool install pre-commit
+pre-commit install
+```
+
+See [docs/ai-dlc/architecture.md](docs/ai-dlc/architecture.md) for the full design rationale.
+
+## Authoring a new skill
+
+1. Create `skills/<name>/SKILL.md` with at minimum:
+
+   ```markdown
+   ---
+   name: <name>
+   description: One-line description — used by Cursor for auto-attach matching.
+   ---
+
+   # Skill Body
+
+   ...
+   ```
+
+   Quote the `description:` value if it contains `:` (YAML is strict).
+
+2. Add any `skills/<name>/resources/*.md` the SKILL.md references. The generator keeps those paths verbatim; Cursor can read them on demand.
+
+3. Regenerate and commit:
+
+   ```bash
+   uv run python -m scripts.generate_cursor_rules skills/
+   git add skills/<name>/ .cursor/rules/<name>.mdc
+   git commit
+   ```
+
+4. If the skill dispatches Claude-only features (`Task(subagent_type=...)` or `Skill(agent-name)`), the generated `.mdc` will automatically carry a Cursor-compatibility banner — no action needed.
+
+5. Pre-commit will block the commit if `.cursor/rules/` is stale. Run the generator again if it complains.
+
 ## Directory Structure
 
 ```
