@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jaredconnor/.skills/hooks/session-init.sh",
+            "command": "bash /Users/jaredconnor/.agent-tooling/hooks/session-init.sh",
             "timeout": 30
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jaredconnor/.skills/hooks/stop-guard.sh 'Before this implementation subagent finishes, confirm:\n1. Have the acceptance criteria for this task been met?\n2. If architectural or design changes were made, have relevant docs (CLAUDE.md, CLAUDE-architecture.md) been updated?\n3. Has a code review been performed (via code-reviewer subagent or manual review)?\nIf any are missing, address them before completing.'"
+            "command": "bash /Users/jaredconnor/.agent-tooling/hooks/stop-guard.sh 'Before this implementation subagent finishes, confirm:\n1. Have the acceptance criteria for this task been met?\n2. If architectural or design changes were made, have relevant docs (CLAUDE.md, CLAUDE-architecture.md) been updated?\n3. Has a code review been performed (via code-reviewer subagent or manual review)?\nIf any are missing, address them before completing.'"
           }
         ]
       },
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jaredconnor/.skills/hooks/stop-guard.sh 'Before this code review subagent finishes, confirm:\n1. Were any critical or major issues found?\n2. If so, have they been addressed or flagged for the parent agent to resolve?\nDo not allow the review to complete with unacknowledged critical issues.'"
+            "command": "bash /Users/jaredconnor/.agent-tooling/hooks/stop-guard.sh 'Before this code review subagent finishes, confirm:\n1. Were any critical or major issues found?\n2. If so, have they been addressed or flagged for the parent agent to resolve?\nDo not allow the review to complete with unacknowledged critical issues.'"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jaredconnor/.skills/hooks/teammate-idle-guard.sh"
+            "command": "bash /Users/jaredconnor/.agent-tooling/hooks/teammate-idle-guard.sh"
           }
         ]
       }
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/jaredconnor/.skills/hooks/task-completed-guard.sh"
+            "command": "bash /Users/jaredconnor/.agent-tooling/hooks/task-completed-guard.sh"
           }
         ]
       }

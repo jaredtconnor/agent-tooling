@@ -1,20 +1,9 @@
 [project]
-name = "skills-tooling"
+name = "agent-tooling"
 version = "0.1.0"
-description = "Dual-tool skill architecture: SKILL.md → .cursor/rules/*.mdc generator and freshness checks"
+description = "Reusable agent skills, personas, commands, hooks, and projection tooling"
 requires-python = ">=3.11"
-dependencies = [
-    "pyyaml>=6.0",
-]
-
-[dependency-groups]
-dev = [
-    "pytest>=8.0",
-]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
+dependencies = []
 
 [tool.ruff]
 line-length = 100

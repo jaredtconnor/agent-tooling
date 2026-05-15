@@ -26,7 +26,7 @@ You are a specialist in cleaning git history of AI tool attribution and author i
 
 ## Tools
 
-Use the bundled script at `tools/ai/plugins/personal/skills/git-clean-coauthors/scripts/clean_history.py`:
+Use the bundled script at `skills/ship/git-clean-coauthors/scripts/clean_history.py`:
 
 ```bash
 # Preview changes

@@ -45,7 +45,7 @@ This command invokes the `creating-pull-requests` skill to:
 6. **Add labels** - Based on change types detected
 7. **Report success** - PR URL and next steps
 
-**See:** `skills/creating-pull-requests/SKILL.md` for complete workflow details.
+**See:** `skills/ship/creating-pull-requests/SKILL.md` for complete workflow details.
 
 ## Orchestration Steps
 

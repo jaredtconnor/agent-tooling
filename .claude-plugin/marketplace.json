@@ -1,0 +1,19 @@
+{
+  "name": "jared-agent-tooling",
+  "owner": {
+    "name": "Jared Connor"
+  },
+  "metadata": {
+    "description": "Personal engineering skills, commands, hooks, and agent personas for Claude Code and other AI coding agents."
+  },
+  "plugins": [
+    {
+      "name": "agent-tooling",
+      "source": {
+        "source": "github",
+        "repo": "jaredtconnor/agent-tooling"
+      },
+      "description": "Personal engineering workflows, specialist personas, and commands for agentic software development."
+    }
+  ]
+}

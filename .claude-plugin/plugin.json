@@ -1,0 +1,40 @@
+{
+  "name": "agent-tooling",
+  "description": "Personal engineering skills, commands, hooks, and agent personas for Claude Code and other AI coding agents.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jared Connor"
+  },
+  "homepage": "https://github.com/jaredtconnor/agent-tooling",
+  "repository": "https://github.com/jaredtconnor/agent-tooling",
+  "license": "MIT",
+  "commands": "./commands",
+  "skills": "./skills",
+  "agents": [
+    "./agents/core/code-searcher.md",
+    "./agents/core/debugger.md",
+    "./agents/core/get-current-datetime.md",
+    "./agents/core/ui-designer.md",
+    "./agents/core/ux-design-expert.md",
+    "./agents/languages/csharp-pro.md",
+    "./agents/languages/golang-pro.md",
+    "./agents/languages/javascript-pro.md",
+    "./agents/languages/python-specialist.md",
+    "./agents/languages/ruby-pro.md",
+    "./agents/languages/rust-pro.md",
+    "./agents/orchestration/project-analyst.md",
+    "./agents/orchestration/team-configurator.md",
+    "./agents/orchestration/tech-lead-orchestrator.md",
+    "./agents/specialists/ai-ml-engineer.md",
+    "./agents/specialists/backend-engineer.md",
+    "./agents/specialists/code-reviewer.md",
+    "./agents/specialists/documentation-specialist.md",
+    "./agents/specialists/frontend-engineer.md",
+    "./agents/specialists/git-history-cleaner.md",
+    "./agents/specialists/performance-engineer.md",
+    "./agents/specialists/platform-engineer.md",
+    "./agents/specialists/qa-engineer.md",
+    "./agents/specialists/search-specialist.md",
+    "./agents/specialists/security-specialist.md"
+  ]
+}

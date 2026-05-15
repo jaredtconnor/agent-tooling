@@ -1,0 +1,9 @@
+{
+  "name": "jared-agent-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "python3 scripts/validate-agent-tooling.py"
+  },
+  "devDependencies": {}
+}

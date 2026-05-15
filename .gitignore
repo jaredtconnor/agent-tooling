@@ -1,13 +1,6 @@
 # Work-specific skills (not public)
-skills/browse
-skills/gstack
-skills/plan-ceo-review
-skills/plan-eng-review
-skills/qa
-skills/retro
-skills/review
-skills/setup-browser-cookies
-skills/ship
+skills/work
+work-overlays/
 
 # Python
 __pycache__/
@@ -15,3 +8,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 .ruff_cache/
+
+# Node
+node_modules/
+.pnpm-store/

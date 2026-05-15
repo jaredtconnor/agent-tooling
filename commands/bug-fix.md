@@ -72,7 +72,7 @@ TodoWrite:
 ### 3. Execute Bug-Fixing
 
 ```bash
-Read: skills/dlc/executing-bug-fixes/SKILL.md
+Read: skills/build/executing-bug-fixes/SKILL.md
 
 # Skill handles:
 # - Root cause (systematic-debugging)
