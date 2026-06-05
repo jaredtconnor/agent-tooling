@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -26,15 +27,45 @@ def read_json(path: Path) -> dict:
 
 
 def has_frontmatter_field(text: str, field: str) -> bool:
+    return frontmatter_field(text, field) is not None
+
+
+def frontmatter_field(text: str, field: str) -> str | None:
     if not text.startswith("---\n"):
-        return False
+        return None
 
     try:
         _, frontmatter, _ = text.split("---", 2)
     except ValueError:
-        return False
+        return None
 
-    return any(line.startswith(f"{field}:") for line in frontmatter.splitlines())
+    for line in frontmatter.splitlines():
+        if line.startswith(f"{field}:"):
+            return line.split(":", 1)[1].strip().strip("\"'")
+
+    return None
+
+
+def fail_duplicate_exports(kind: str, exports: dict[str, list[Path]]) -> None:
+    duplicates = {name: paths for name, paths in exports.items() if len(paths) > 1}
+    if not duplicates:
+        return
+
+    lines = [f"duplicate {kind} exports detected:"]
+    for name, paths in sorted(duplicates.items()):
+        joined = ", ".join(str(path.relative_to(ROOT)) for path in paths)
+        lines.append(f"  {name}: {joined}")
+    fail("\n".join(lines))
+
+
+def command_invokes_skill(command_text: str, skill_name: str) -> bool:
+    escaped = re.escape(skill_name)
+    patterns = (
+        rf"\bSkill\(\s*{escaped}\s*[,)]",
+        rf"`{escaped}` skill",
+        rf"uses the `{escaped}` skill",
+    )
+    return any(re.search(pattern, command_text, re.IGNORECASE) for pattern in patterns)
 
 
 def validate_source_layout() -> None:
@@ -54,13 +85,18 @@ def validate_skills() -> None:
     if not skill_files:
         fail("no skills found under skills/**/SKILL.md")
 
+    skill_exports: dict[str, list[Path]] = {}
     for path in skill_files:
         text = path.read_text()
         rel = path.relative_to(ROOT)
-        if not has_frontmatter_field(text, "name"):
+        name = frontmatter_field(text, "name")
+        if not name:
             fail(f"{rel} is missing frontmatter field: name")
         if not has_frontmatter_field(text, "description"):
             fail(f"{rel} is missing frontmatter field: description")
+        skill_exports.setdefault(name, []).append(path)
+
+    fail_duplicate_exports("skill", skill_exports)
 
 
 def validate_agents() -> None:
@@ -68,16 +104,50 @@ def validate_agents() -> None:
     if not agent_files:
         fail("no agent personas found under agents/**/*.md")
 
+    agent_exports: dict[str, list[Path]] = {}
     for path in agent_files:
         if path.name == "README.md":
             continue
 
         text = path.read_text()
         rel = path.relative_to(ROOT)
-        if not has_frontmatter_field(text, "name"):
+        name = frontmatter_field(text, "name")
+        if not name:
             fail(f"{rel} is missing frontmatter field: name")
         if not has_frontmatter_field(text, "description"):
             fail(f"{rel} is missing frontmatter field: description")
+        agent_exports.setdefault(name, []).append(path)
+
+    fail_duplicate_exports("agent", agent_exports)
+
+
+def validate_commands() -> None:
+    command_files = sorted((ROOT / "commands").glob("*.md"))
+    if not command_files:
+        fail("no commands found under commands/*.md")
+
+    command_exports: dict[str, list[Path]] = {}
+    for path in command_files:
+        command_exports.setdefault(path.stem, []).append(path)
+
+    fail_duplicate_exports("command", command_exports)
+
+
+def validate_command_skill_pairs() -> None:
+    skills = {
+        frontmatter_field(path.read_text(), "name"): path
+        for path in sorted((ROOT / "skills").glob("**/SKILL.md"))
+    }
+    commands = {path.stem: path for path in sorted((ROOT / "commands").glob("*.md"))}
+    overlaps = sorted(name for name in skills.keys() & commands.keys() if name)
+
+    for name in overlaps:
+        command_text = commands[name].read_text()
+        if not command_invokes_skill(command_text, name):
+            fail(
+                "command/skill name overlap must be intentional and documented: "
+                f"{name} ({commands[name].relative_to(ROOT)} and {skills[name].relative_to(ROOT)})"
+            )
 
 
 def validate_plugin_metadata() -> None:
@@ -106,6 +176,8 @@ def main() -> None:
     validate_source_layout()
     validate_skills()
     validate_agents()
+    validate_commands()
+    validate_command_skill_pairs()
     validate_plugin_metadata()
     print("agent tooling metadata is valid")
 

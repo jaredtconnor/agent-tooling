@@ -6,6 +6,12 @@ description: Assess repository QA readiness for agentic engineering workflows
 
 Analyse a repository against the Tiered Test Gate framework (Tiers 0-5) and produce an assessment with actionable recommendations mapped to foundations best practices.
 
+## Canonical Skill
+
+This command is the Claude-facing trigger for `Skill(qa-review)`. If that skill
+is not installed in the current runtime, read `~/.agent-tooling/skills/verify/qa-review/SKILL.md`
+and follow it directly.
+
 ## Usage
 
 ```

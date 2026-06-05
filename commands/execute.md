@@ -6,6 +6,12 @@ description: Execute implementation by detecting issue type and routing to the c
 
 Detect issue type (feature, phase, or standalone) and route to the appropriate execution tier.
 
+## Canonical Skill
+
+This command is the Claude-facing trigger for `Skill(execute)`. If that skill is
+not installed in the current runtime, read `~/.agent-tooling/skills/build/execute/SKILL.md`
+and follow it directly.
+
 ## Usage
 
 ```bash

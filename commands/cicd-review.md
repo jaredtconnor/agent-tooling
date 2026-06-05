@@ -6,6 +6,12 @@ description: Assess CI/CD pipeline quality and generate improvement recommendati
 
 Analyse a repository's CI/CD pipelines against the 5-pillar framework (Build, Integration & E2E Tests, Static Analysis, Security, Agentic PR Review) and produce a scored assessment with actionable recommendations.
 
+## Canonical Skill
+
+This command is the Claude-facing trigger for `Skill(cicd-review)`. If that
+skill is not installed in the current runtime, read `~/.agent-tooling/skills/verify/cicd-review/SKILL.md`
+and follow it directly.
+
 ## Usage
 
 ```

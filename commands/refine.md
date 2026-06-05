@@ -6,6 +6,12 @@ description: Refine feature ideas into specifications focusing on WHAT to build 
 
 Transform rough ideas into validated specifications (WHAT to build), ready for technical planning.
 
+## Canonical Skill
+
+This command is the Claude-facing trigger for `Skill(refine)`. If that skill is
+not installed in the current runtime, read `~/.agent-tooling/skills/define/refine/SKILL.md`
+and follow it directly.
+
 ## Usage
 
 ```bash

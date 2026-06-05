@@ -17,4 +17,6 @@ This repository is the source of truth for reusable AI tooling.
 - Keep generated runtime targets out of source control unless they are intentionally part of the repo contract.
 - Prefer `npx skills` for skill discovery and installation workflows.
 - Use repo-managed projection logic for agents, commands, hooks, and plugin metadata.
+- Keep exported names unique. If a command and skill share a name, the command must explicitly invoke the skill and the projection layer should expose the command as the user-facing trigger.
+- Treat private overlays as additive. They must not override canonical `~/.agent-tooling` assets unless the projection allowlist makes the override explicit.
 - Run `just verify` before committing structural changes.

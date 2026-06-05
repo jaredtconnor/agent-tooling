@@ -105,6 +105,15 @@ Do not edit generated runtime targets such as `~/.claude/skills`,
 `~/.cursor/skills`, or `~/.codex/skills` directly. Update this repo, then run
 `just link` if runtime symlinks need repair.
 
+Dotfiles own the runtime projection policy. `~/.agent-tooling` is the canonical
+reusable source, while optional overlays such as `~/.skills-work` may add
+private tooling only when their exported names do not collide with canonical
+assets. Command-backed workflows, such as `refine`, `plan`, and `breakdown`,
+are projected as Claude/.agents commands and Pi prompt templates instead of
+duplicate Claude skills so slash completion has one user-facing entry per
+workflow. Pi still receives skill bodies for `/skill:name` use, but plain
+`/name` entries come from `~/.pi/agent/prompts/*.md`.
+
 ## Work Overlay
 
 Keep public/personal reusable assets here. Put company-specific or private assets

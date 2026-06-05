@@ -6,6 +6,12 @@ description: Break down refined and planned issues into implementation sub-issue
 
 Transform refined specification and technical plan into executable sub-issues with dependencies.
 
+## Canonical Skill
+
+This command is the Claude-facing trigger for `Skill(breakdown)`. If that skill
+is not installed in the current runtime, read `~/.agent-tooling/skills/plan/breakdown/SKILL.md`
+and follow it directly.
+
 ## Usage
 
 ```bash

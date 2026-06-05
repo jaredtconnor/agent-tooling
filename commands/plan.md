@@ -6,6 +6,12 @@ description: Create technical implementation plan from refined specification - t
 
 Create technical plan from specification, defining HOW to build what's been specified.
 
+## Canonical Skill
+
+This command is the Claude-facing trigger for `Skill(plan)`. If that skill is
+not installed in the current runtime, read `~/.agent-tooling/skills/plan/plan/SKILL.md`
+and follow it directly.
+
 ## Usage
 
 ```bash
