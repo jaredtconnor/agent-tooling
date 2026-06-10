@@ -17,9 +17,21 @@ list-local: list
 install source *args:
 	bash scripts/install-agent-skills.sh "{{source}}" {{args}}
 
-# Install Vercel's public agent skill pack for the default agents
+# List external sources declared in external-skills.json
+list-external:
+	bash scripts/install-agent-skills.sh --list-external
+
+# Install every external source from external-skills.json
+install-external:
+	bash scripts/install-agent-skills.sh --all
+
+# Install a single external source by manifest name (e.g. mattpocock, gstack, vercel)
+install-named name:
+	bash scripts/install-agent-skills.sh --name "{{name}}"
+
+# Back-compat alias for the Vercel pack now declared in external-skills.json
 install-vercel:
-	bash scripts/install-agent-skills.sh vercel-labs/agent-skills
+	bash scripts/install-agent-skills.sh --name vercel
 
 # Create or repair runtime links from .agents/ into installed agents
 link:

@@ -150,6 +150,43 @@ def validate_command_skill_pairs() -> None:
             )
 
 
+def validate_external_skills_manifest() -> None:
+    path = ROOT / "external-skills.json"
+    if not path.is_file():
+        return  # manifest is optional
+
+    data = read_json(path)
+    if data.get("version") != 1:
+        fail("external-skills.json must declare version: 1")
+
+    sources = data.get("sources")
+    if not isinstance(sources, list):
+        fail("external-skills.json must contain a 'sources' array")
+
+    seen_names: set[str] = set()
+    seen_sources: set[str] = set()
+    for entry in sources:
+        if not isinstance(entry, dict):
+            fail(f"external-skills.json source must be an object: {entry!r}")
+        name = entry.get("name")
+        source = entry.get("source")
+        if not name or not isinstance(name, str):
+            fail(f"external-skills.json entry missing 'name': {entry!r}")
+        if not source or not isinstance(source, str):
+            fail(f"external-skills.json entry '{name}' missing 'source'")
+        if name in seen_names:
+            fail(f"external-skills.json has duplicate name: {name}")
+        if source in seen_sources:
+            fail(f"external-skills.json has duplicate source: {source}")
+        seen_names.add(name)
+        seen_sources.add(source)
+        skills = entry.get("skills")
+        if skills is not None and not (
+            isinstance(skills, list) and all(isinstance(s, str) for s in skills)
+        ):
+            fail(f"external-skills.json entry '{name}' has invalid 'skills' field")
+
+
 def validate_plugin_metadata() -> None:
     plugin = read_json(ROOT / ".claude-plugin/plugin.json")
     marketplace = read_json(ROOT / ".claude-plugin/marketplace.json")
@@ -178,6 +215,7 @@ def main() -> None:
     validate_agents()
     validate_commands()
     validate_command_skill_pairs()
+    validate_external_skills_manifest()
     validate_plugin_metadata()
     print("agent tooling metadata is valid")
 

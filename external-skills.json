@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "name": "vercel",
+      "source": "vercel-labs/agent-skills",
+      "description": "Vercel Labs public agent skill pack",
+      "skills": null
+    },
+    {
+      "name": "mattpocock",
+      "source": "mattpocock/skills",
+      "description": "Matt Pocock's public skills (TypeScript, AI, etc.)",
+      "skills": null
+    },
+    {
+      "name": "gstack",
+      "source": "garrytan/gstack",
+      "description": "gstack skills (browse, review, ship, qa, plan-*-review, retro)",
+      "skills": null
+    }
+  ]
+}
