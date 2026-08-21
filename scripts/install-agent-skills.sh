@@ -5,6 +5,13 @@ DEFAULT_AGENTS=(claude-code cursor codex)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$ROOT/external-skills.json"
 
+# Git Bash on Windows ships `python` with no `python3` alias.
+PY_BIN="$(command -v python3 || command -v python || true)"
+if [[ -z "$PY_BIN" ]]; then
+  echo "install-agent-skills.sh: no python interpreter on PATH" >&2
+  exit 1
+fi
+
 usage() {
   cat <<'USAGE'
 Usage:
@@ -23,7 +30,7 @@ USAGE
 # Args: optional name filter (empty = all).
 read_manifest() {
   local filter="${1:-}"
-  python3 - "$MANIFEST" "$filter" <<'PY'
+  "$PY_BIN" - "$MANIFEST" "$filter" <<'PY'
 import json, sys
 path, name_filter = sys.argv[1], sys.argv[2]
 with open(path) as f:
@@ -45,7 +52,7 @@ PY
 }
 
 list_external() {
-  python3 - "$MANIFEST" <<'PY'
+  "$PY_BIN" - "$MANIFEST" <<'PY'
 import json, sys
 with open(sys.argv[1]) as f:
     data = json.load(f)
