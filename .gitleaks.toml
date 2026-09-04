@@ -1,0 +1,13 @@
+# Gitleaks configuration for agent-tooling publication scanning.
+# Uses the full default ruleset. This repo is published publicly, so scans run
+# over complete history (`gitleaks git .`) and must report zero findings.
+
+title = "agent-tooling"
+
+[extend]
+useDefault = true
+
+# No broad allowlist: the historical synthetic JWT fixture was rewritten to an
+# explicit placeholder (<example-jwt-access-token>) rather than suppressed, so
+# there is nothing to allowlist. Add narrowly-scoped entries here only for
+# provably-synthetic example values, never to hide a real secret.

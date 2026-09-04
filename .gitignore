@@ -2,6 +2,9 @@
 skills/work
 work-overlays/
 
+# Local (private) publication denylist merged by verify-publication.sh
+scripts/publication-policy.local.txt
+
 # Python
 __pycache__/
 *.pyc

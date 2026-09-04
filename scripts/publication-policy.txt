@@ -1,0 +1,25 @@
+# Publication privacy policy for agent-tooling (extended-regex, one per line).
+# verify-publication.sh rejects any file whose content matches a pattern below.
+# Blank lines and lines starting with '#' are ignored. The policy definition
+# files themselves are exempt from scanning.
+#
+# These target categories the specification bars from the public repo: private
+# infrastructure, work/corporate identity, private overlays, and private keys.
+# Structural patterns only; no literal private hostnames or addresses are
+# committed here (that would itself leak them). Host-specific private values
+# live in the git-ignored publication-policy.local.txt and are merged locally.
+#
+# The repo owner's own install path (/Users/<user>/.agent-tooling) is
+# intentionally NOT listed: it appears in public install examples.
+
+# --- Tailscale CGNAT range (100.64.0.0/10) and tailnet hostnames ---
+\b100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}\b
+[A-Za-z0-9-]+\.ts\.net\b
+
+# --- work / corporate identity domains ---
+[A-Za-z0-9-]+\.corp\b
+[A-Za-z0-9-]+\.internal\b
+[A-Za-z0-9-]+\.lan\b
+
+# --- private key material ---
+-----BEGIN [A-Z ]*PRIVATE KEY-----

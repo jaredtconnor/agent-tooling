@@ -1,0 +1,7 @@
+# Publication policy allowlist (extended-regex, one per line).
+# A content line that matches the policy but ALSO matches an allowlist pattern
+# here is exempt. Use only for provably public-safe values, never to hide real
+# private data. Blank lines and '#' comments are ignored.
+
+# Docker's well-known host-gateway DNS name (not a corporate/internal domain).
+host\.docker\.internal

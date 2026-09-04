@@ -47,6 +47,7 @@ plugin-check: verify
 verify:
 	python3 scripts/validate-agent-tooling.py
 	npx skills add . --list >/dev/null
+	bash scripts/verify-publication.sh
 
 # Show the current repo changes
 status:
