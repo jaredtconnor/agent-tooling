@@ -33,6 +33,10 @@ install-named name:
 install-vercel:
 	bash scripts/install-agent-skills.sh --name vercel
 
+# Install the Deep Research skill pack (namespaced dr-*) for Claude Code and Codex
+install-deep-research:
+	bash scripts/install-deep-research.sh
+
 # Create or repair runtime links from .agents/ into installed agents
 link:
 	npx @iannuttall/dotagents
