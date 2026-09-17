@@ -73,6 +73,12 @@
             "source": "https://github.com/petergyang/no-ai-slop",
             "description": "Remove ai slop from writing",
             "skills": null
+        },
+        {
+            "name": "visual-pr",
+            "source": "https://github.com/humanlayer/skills/tree/main/plugins/visual-pr",
+            "description": "HumanLayer visual-pr skill: create/update a PR with a concise /show-me-style visual outline that helps reviewers. Scoped to the plugins/visual-pr subdir so the mirror projects only this skill.",
+            "skills": null
         }
     ]
 }
