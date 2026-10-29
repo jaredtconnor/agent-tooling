@@ -2,6 +2,8 @@
 # Common commands for local skills, Claude plugin metadata, and skills.sh installs.
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+# On Windows, plain "bash" can resolve to WSL's System32 launcher; Git for Windows' sh keeps recipes on Git Bash.
+set windows-shell := ["sh", "-eu", "-c"]
 
 default:
 	@just --list
@@ -36,6 +38,14 @@ install-vercel:
 # Create or repair runtime links from .agents/ into installed agents
 link:
 	npx @iannuttall/dotagents
+
+# Write .agents/AGENTS.md (+ overlay instructions) to every agent runtime and overlay project repo
+instructions *args:
+	bash scripts/sync-agent-instructions.sh {{args}}
+
+# Show which instruction files are out of date without writing anything
+instructions-check:
+	bash scripts/sync-agent-instructions.sh --check
 
 # Validate Claude Code plugin metadata and local assets
 plugin-check: verify

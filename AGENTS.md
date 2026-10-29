@@ -9,7 +9,7 @@ This repository is the source of truth for reusable AI tooling.
 - `commands/` contains user-facing workflow entry points.
 - `hooks/` contains runtime automation scripts.
 - `references/` contains shared guidance used by multiple assets.
-- `.agents/` is a compatibility projection, not the editing source.
+- `.agents/` is a compatibility projection, not the editing source. The exception is `.agents/AGENTS.md`: the source for global user instructions, written to each runtime by `just instructions`.
 
 ## Working Rules
 

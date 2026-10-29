@@ -38,6 +38,7 @@ just list          # show skills discovered by npx skills
 just verify        # validate skills, agents, plugin metadata, and discovery
 just plugin-check  # print Claude plugin install commands
 just link          # run dotagents for runtime symlink repair
+just instructions  # write global and project AGENTS.md files (see Agent Instructions)
 just install vercel-labs/agent-skills
 ```
 
@@ -106,13 +107,36 @@ Do not edit generated runtime targets such as `~/.claude/skills`,
 `just link` if runtime symlinks need repair.
 
 Dotfiles own the runtime projection policy. `~/.agent-tooling` is the canonical
-reusable source, while optional overlays such as `~/.skills-work` may add
+reusable source, while optional overlays such as `~/.agent-tooling-work` may add
 private tooling only when their exported names do not collide with canonical
 assets. Command-backed workflows, such as `refine`, `plan`, and `breakdown`,
 are projected as Claude/.agents commands and Pi prompt templates instead of
 duplicate Claude skills so slash completion has one user-facing entry per
 workflow. Pi still receives skill bodies for `/skill:name` use, but plain
 `/name` entries come from `~/.pi/agent/prompts/*.md`.
+
+## Agent Instructions
+
+`.agents/AGENTS.md` is the source for the global, tool-neutral user instructions:
+communication, response shape, and general dev workflow. It is a real file, not a
+projection of this repo's own `AGENTS.md` (which only covers working on this repo).
+
+`just instructions` writes it to every runtime whose directory exists:
+`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.omp/agent/AGENTS.md`, and
+`~/.gemini/GEMINI.md`. Each overlay (`~/.agent-tooling-work` by default, or the
+colon-separated `AGENT_TOOLING_OVERLAYS`) can add:
+
+- `.agents/AGENTS.md`, appended to the global instructions.
+- `projects/<name>/AGENTS.md` plus `projects/<name>/TARGET` (one line, the repo
+  path). The file is written to `<repo>/AGENTS.md`, and `<repo>/CLAUDE.md` gets
+  `@AGENTS.md` when it has none.
+
+Generated files start with a header that records the hash of their body. If an
+agent or a memory feature edits a generated file in place, `just instructions`
+reports it as `EDITED` and leaves it alone; move the edit into the source, or run
+`just instructions --force`. `just instructions-check` lists out-of-date files
+without writing. Keep each file small: what applies to every task, with pointers
+to docs and skills for the rest.
 
 ## Work Overlay
 
