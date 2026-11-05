@@ -56,3 +56,5 @@ Avoid emojis, filler openers and closers ("Certainly", "I hope this helps"), sal
 ## Writing for humans
 
 For text read outside chat (PR descriptions, commit bodies, ADRs, docs, handoffs, issue write-ups), apply `skill://unslop`. Skip its "add soul" section for status reports and engineering summaries.
+
+Text that goes out under my name (commits, PR titles and bodies, review replies, issue comments, Slack or email drafts) uses my voice. The same file explains how to read my prompts: @~/.agent-tooling/references/voice.md
