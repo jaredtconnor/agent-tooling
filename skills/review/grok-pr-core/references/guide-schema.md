@@ -5,7 +5,7 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
 ```jsonc
 {
   "id": "owner/repo#252",                 // localStorage key for reviewed state; defaults to url, then title
-  "mode": "review",                       // review (default) | self | respond; see SKILL.md
+  "mode": "review",                       // review (default) | self | respond; set by the grok-pr, grok-pr-self, grok-pr-feedback skill
   "title": "Share one retry policy across HTTP clients",
   "url": "https://github.com/owner/repo/pull/252",
   "author": "Jane Doe",

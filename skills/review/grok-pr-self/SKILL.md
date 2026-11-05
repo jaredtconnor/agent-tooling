@@ -1,0 +1,34 @@
+---
+name: grok-pr-self
+description: Self-reviews your own branch or pull request before you ship it, against the repo's coding standards, testing rules and PR and commit conventions, through the same interactive HTML guide as grok-pr. Findings are triaged in the page (accept, skip, edit) and the accepted ones are fixed in the working tree; nothing is posted to GitHub. Use when the user asks to self-review, check, tighten or grok their own branch, PR or changes before review or merge.
+---
+
+# Grok PR (self-review)
+
+Review your own change the way a strict reviewer would, then fix what you accept, so the PR that goes out is already clean.
+
+## When To Use
+
+- "Self-review my branch", "check my PR before I ship it", "what would a reviewer flag here", or `grok-pr` on a PR the user wrote.
+- With no target: the current branch's PR (`gh pr view`), else the current branch against its base.
+- Reviewer comments already on the PR: use `grok-pr-feedback`.
+
+## Process
+
+Read `../grok-pr-core/references/process.md` (`CORE` is `../grok-pr-core` from this skill's directory) and run steps 0 to 9 with `mode: "self"`, with these changes:
+
+- **Step 1:** the branch is usually checked out, so read the working tree, and include uncommitted changes when the user wants them reviewed (`git diff <base>` instead of `<base>...<head>`). Read the repo's PR and commit rules as well as the coding standards: AGENTS.md and every contributing or workflow doc it links.
+- **Step 6:** run the `standards` pass in full: the PR title and description, commit messages, branch name and story key against the git workflow rules; logging, data access, naming and test conventions against the coding standards. Cite the rule in each finding. Run the repo's build and the tests covering the change (`syntax`, `tests`); do not leave `quality.compiles` unchecked when the build can run here.
+- **Step 7:** the verdict answers "is this ready to request review?". `reviewBody` describes the root-cause change you would make, not a comment to post.
+
+After step 9, the user triages. When they say to fix the accepted items (or paste the "Copy fix list" output), follow "Applying accepted items as fixes" in step 9. Fix `standards` findings about the PR title or description by proposing the new text in chat; change the PR only if asked. Then re-render the guide if the user wants a second pass.
+
+## Report
+
+In chat: the served URL, the TL;DR, the verdict, and blockers and majors as `path:line title`. After fixes: each item fixed (with the test or command) or declined (with the reason), and what still blocks shipping.
+
+## Stop Conditions
+
+- The shared stop conditions in `process.md`.
+- Never post to GitHub in this mode; the server refuses anyway.
+- Never commit, push or amend unless asked.
