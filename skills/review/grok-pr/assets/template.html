@@ -87,7 +87,8 @@ h3:first-child { margin-top:0 }
 .proposal .ph { padding:4px 10px; background:var(--panel2); font-size:12px; color:var(--muted) }
 .proposal .ph strong { color:var(--fg) }
 .proposal .pn { padding:6px 10px; border-top:1px solid var(--border); font-size:12.5px }
-.finding .copy { margin-left:auto; font-size:11.5px; padding:1px 8px }
+.finding .hd-r { margin-left:auto; display:flex; gap:6px; align-items:center }
+.finding .copy { font-size:11.5px; padding:1px 8px }
 .empty { padding:12px; color:var(--muted); font-size:12.5px }
 table.diff { width:100%; border-collapse:collapse; font:12px/1.6 var(--mono); table-layout:fixed }
 .diff td { padding:0 10px; white-space:pre-wrap; overflow-wrap:anywhere; vertical-align:top }
@@ -97,9 +98,18 @@ table.diff { width:100%; border-collapse:collapse; font:12px/1.6 var(--mono); ta
 .diff td.d { background:var(--del) } .diff td.ln.d { background:var(--del-n); opacity:1 }
 .diff td.e { background:var(--panel2) }
 .diff tr.fnd td { padding:0; white-space:normal }
-.finding { margin:8px 12px; border:1px solid var(--border); border-left:3px solid var(--yellow); background:var(--bg); border-radius:6px; padding:10px 12px; font:13.5px/1.5 var(--sans) }
-.finding .hd { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:4px }
-.finding .sg { margin-top:6px; padding-top:6px; border-top:1px dashed var(--border) }
+.finding { margin:10px 12px; border:1px solid var(--border); border-left:3px solid var(--yellow); background:var(--bg); border-radius:8px; padding:12px 16px; font:13.5px/1.6 var(--sans); box-shadow:0 1px 2px rgba(0,0,0,.12) }
+.finding .hd { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px }
+.finding .ttl { font-size:14.5px; font-weight:600 }
+.finding .body, .finding .sg, .finding .reply, .finding .quote, .finding .proposal, .finding .editor { max-width:120ch }
+.finding .sg, .finding .reply { margin-top:10px; padding:8px 12px; border-radius:6px; background:var(--panel2); border-left:2px solid var(--accent) }
+.finding .reply { border-left-color:var(--green) }
+.lbl2 { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; margin-bottom:2px }
+.finding .quote { margin:6px 0 10px; padding:4px 12px; border-left:3px solid var(--border); color:var(--muted) }
+.finding .quote .qa { font-size:12px; font-weight:600; margin-bottom:2px }
+.finding details.ev { margin-top:8px; font-size:12.5px; color:var(--muted) }
+.finding details.ev summary { cursor:pointer; user-select:none; width:max-content }
+.finding details.ev summary:hover { color:var(--fg) }
 .sev-blocker { border-left-color:var(--red) } .sev-major { border-left-color:var(--orange) } .sev-minor { border-left-color:var(--yellow) } .sev-nit { border-left-color:var(--muted) }
 .flash { animation:flash 1.8s ease-out }
 @keyframes flash { from { box-shadow:0 0 0 3px var(--accent) } to { box-shadow:0 0 0 3px transparent } }
@@ -111,9 +121,28 @@ table.diff { width:100%; border-collapse:collapse; font:12px/1.6 var(--mono); ta
 .hljs-attr,.hljs-attribute,.hljs-variable,.hljs-params,.hljs-meta,.hljs-tag,.hljs-name { color:var(--ta) }
 
 /* findings, canvas, structure, files */
-.filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px }
+.filters { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:-8px -24px 16px; padding:10px 24px; position:sticky; top:84px; z-index:4; background:var(--bg); border-bottom:1px solid var(--border) }
 .filters .btn.on { border-color:var(--accent); color:var(--accent) }
-.findings .finding { margin:0 0 10px; cursor:pointer } .findings .finding:hover { border-color:var(--accent) }
+.filters .sep { width:1px; height:20px; background:var(--border); margin:0 4px }
+.search { background:var(--panel); border:1px solid var(--border); color:var(--fg); border-radius:6px; padding:4px 10px; font:inherit; font-size:13px; width:240px }
+.search:focus { outline:none; border-color:var(--accent) }
+.fs { height:26px } .fs button.on { background:var(--panel2); color:var(--fg) } .fs .n { color:var(--muted); font-size:11px }
+.findings .finding { margin:0 0 12px; background:var(--panel); cursor:pointer; transition:border-color .12s, opacity .12s }
+.findings .finding:hover { border-color:var(--accent) }
+.findings .finding.sel { outline:2px solid var(--accent); outline-offset:2px }
+.findings .finding.st-accepted { background:linear-gradient(90deg, rgba(76,183,130,.08), transparent 45%), var(--panel) }
+.findings .finding.st-skipped { opacity:.5 } .findings .finding.st-skipped:hover, .findings .finding.st-skipped.sel { opacity:.85 }
+.findings .finding.st-posted { opacity:.7 }
+.finding > .loc { margin:-2px 0 6px }
+.triage { display:flex; gap:6px; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border) }
+.tb { background:var(--panel2); border:1px solid var(--border); color:var(--muted); border-radius:6px; padding:3px 10px; font:12.5px var(--sans); cursor:pointer }
+.tb:hover { color:var(--fg); border-color:var(--muted) }
+.tb.acc.on { background:var(--add-n); color:var(--green); border-color:var(--green) }
+.tb.skp.on { background:var(--del-n); color:var(--red); border-color:var(--red) }
+.editor { margin-top:10px } .editor textarea { width:100%; min-height:150px; background:var(--bg); color:var(--fg); border:1px solid var(--accent); border-radius:6px; padding:8px 10px; font:12.5px/1.5 var(--mono); resize:vertical }
+.editor .row { margin-top:6px }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff } .btn.primary:disabled { background:var(--panel2); border-color:var(--border); color:var(--muted) }
+#toast { font-size:12.5px; color:var(--muted); align-self:center; max-width:460px } #toast.err { color:var(--red) }
 .loc { font-family:var(--mono); font-size:12px; color:var(--muted) }
 .gauge { display:flex; height:10px; border-radius:999px; overflow:hidden; background:var(--panel2); margin:8px 0 6px }
 .gauge span { display:block; height:100% }
@@ -148,6 +177,9 @@ footer { color:var(--muted); font-size:12px; margin-top:28px }
     <nav id="tabs"></nav>
     <div class="tools">
       <button class="btn" id="mode" title="Toggle split / unified diff"></button>
+      <span id="toast"></span>
+      <button class="btn" id="fix" hidden></button>
+      <button class="btn primary" id="act" hidden></button>
       <button class="btn" id="copy" title="Copy verdict, findings and canvas concerns as Markdown">Copy review notes</button>
     </div>
   </div>
@@ -227,6 +259,7 @@ const TONE = {
   pass: "c-good", concern: "c-warn", fail: "c-bad", na: "c-mute", unchecked: "c-mute",
   verified: "c-good", inferred: "c-mute", "not-run": "c-mute",
   added: "c-good", removed: "c-bad", changed: "c-warn", moved: "c-info", renamed: "c-info",
+  agree: "c-good", partly: "c-warn", disagree: "c-bad", question: "c-info",
 };
 const pill = (v, label) => v ? el("span", { class: "pill " + (TONE[v] || "c-mute") }, label || v) : null;
 const SEV = ["blocker", "major", "minor", "nit"];
@@ -245,21 +278,27 @@ function hl(text, lang) {
   if (!lang || text.length > 800) return esc(text);
   try { return hljs.highlight(text, { language: lang, ignoreIllegals: true }).value; } catch { return esc(text); }
 }
-function findingCard(f, withLoc) {
-  const step = withLoc && f.chapter != null ? el("a", { class: "chip", href: "#guide/" + (f.chapter + 1), title: "Open in the guide",
+function findingCard(f, inList) {
+  const step = inList && f.chapter != null ? el("a", { class: "chip", href: "#guide/" + (f.chapter + 1), title: "Open in the guide",
     onclick: e => { e.preventDefault(); e.stopPropagation(); jumpFinding(f, "guide"); } }, "step " + (f.chapter + 1)) : null;
-  return el("div", { class: "finding sev-" + f.severity, "data-fid": f.id },
-    el("div", { class: "hd" }, pill(f.severity), el("span", { class: "chip" }, f.category),
+  const copyLabel = { review: "Copy comment", self: "Copy fix", respond: "Copy reply" }[MODE];
+  const who = "@" + (f.author || "reviewer");
+  return el("div", { class: "finding sev-" + f.severity + (inList ? " st-" + statusOf(f) : ""), "data-fid": f.id },
+    el("div", { class: "hd" }, pill(f.severity), f.assessment ? pill(f.assessment) : null, el("span", { class: "chip" }, f.category),
       f.confidence === "inferred" ? el("span", { class: "chip", title: "Not verified by running code or reading every caller" }, "inferred") : null,
-      el("strong", {}, f.title),
-      withLoc && f.path ? el("span", { class: "loc grow", style: "text-align:right" }, f.path + (f.line ? ":" + f.line : ""), f.inDiff ? "" : " (outside diff)") : null,
-      step,
-      el("button", { class: "btn copy", title: "Copy as a PR review comment (Markdown)",
-        onclick: e => { e.stopPropagation(); copyText(commentMarkdown(f), e.currentTarget, "Copy comment"); } }, "Copy comment")),
-    f.detail ? mdEl(f.detail) : null,
-    f.suggestion ? el("div", { class: "sg", html: "<strong>Suggestion</strong> " + md(f.suggestion) }) : null,
-    f.evidence ? el("div", { class: "small muted", style: "margin-top:6px", title: "Shown here only; not part of the PR comment", html: "<strong>Evidence</strong> " + md(f.evidence) }) : null,
-    proposalBlock(f));
+      el("strong", { class: "ttl" }, f.title),
+      el("span", { class: "hd-r" }, step,
+        el("button", { class: "btn copy", title: "Copy the text that would be " + (MODE === "self" ? "handed to the agent" : "posted"),
+          onclick: e => { e.stopPropagation(); copyText(MODE === "self" ? fixText(f) : bodyFor(f), e.currentTarget, copyLabel); } }, copyLabel))),
+    inList && f.path ? el("div", { class: "loc" }, f.path + (f.line ? ":" + f.line : ""), f.inDiff ? "" : "  ·  outside the diff") : null,
+    f.quote ? el("blockquote", { class: "quote" },
+      el("div", { class: "qa" }, f.url ? el("a", { href: f.url, target: "_blank", onclick: e => e.stopPropagation() }, who) : who), mdEl(f.quote)) : null,
+    f.detail ? mdEl(f.detail, "body") : null,
+    f.suggestion ? el("div", { class: "sg" }, el("span", { class: "lbl2" }, MODE === "review" ? "Suggestion" : "Fix"), mdEl(f.suggestion)) : null,
+    proposalBlock(f),
+    MODE === "respond" && f.reply ? el("div", { class: "reply" }, el("span", { class: "lbl2" }, "Proposed reply"), mdEl(bodyFor(f))) : null,
+    f.evidence ? el("details", { class: "ev", onclick: e => e.stopPropagation() }, el("summary", {}, "Evidence"), mdEl(f.evidence)) : null,
+    inList ? triageBar(f) : null);
 }
 // The expected shape of the fix: a before/after diff when it replaces lines, else the code to add.
 function proposalBlock(f) {
@@ -403,7 +442,7 @@ function canvasScore() {
 // ---------- views ----------
 const TABS = [
   ["overview", "Overview"], ["guide", "Guide", () => CH.length], ["structure", "Structure"],
-  ["findings", "Findings", () => FINDINGS.length], ["canvas", "Canvas", () => canvasScore().pct + "%"], ["files", "Files", () => FILES.length],
+  ["findings", G.mode === "respond" ? "Feedback" : "Findings", () => FINDINGS.length], ["canvas", "Canvas", () => canvasScore().pct + "%"], ["files", "Files", () => FILES.length],
 ];
 let tab = "overview";
 const rendered = {};
@@ -412,12 +451,14 @@ function header() {
   const add = FILES.reduce((s, f) => s + f.add, 0), del = FILES.reduce((s, f) => s + f.del, 0);
   document.title = G.title + " · PR guide";
   const issues = (G.issues || []).map(i => el(i.url ? "a" : "span", { class: "chip", href: i.url, target: "_blank", title: i.title || "" }, i.key));
-  document.getElementById("crumbs").replaceChildren(...issues, issues.length ? "›" : null,
+  document.getElementById("crumbs").replaceChildren(...[...issues, issues.length ? "›" : null,
     el("span", { class: "title" }, G.title), el("span", {}, delta(add, del)),
-    G.url ? el("a", { href: G.url, target: "_blank", class: "meta" }, G.url.replace(/^https?:\/\/(www\.)?/, "")) : null);
+    G.url ? el("a", { href: G.url, target: "_blank", class: "meta" }, G.url.replace(/^https?:\/\/(www\.)?/, "")) : null,
+    MODE !== "review" ? el("span", { class: "chip" }, MODE === "self" ? "self-review" : "responding to feedback") : null].filter(Boolean));
   document.getElementById("tabs").replaceChildren(...TABS.map(([id, label, n], i) =>
     el("button", { class: "tab" + (tab === id ? " on" : ""), title: `${label} (${i + 1})`, onclick: () => go(id) }, label, n ? el("span", { class: "n" }, n()) : null)));
   document.getElementById("mode").textContent = mode === "split" ? "Split" : "Unified";
+  updateActions();
 }
 
 function titleBlock() {
@@ -535,20 +576,179 @@ async function drawMermaid(holder, src) {
   }
 }
 
-let fSev = new Set(), fCat = new Set();
+// ---------- triage: accept / skip / edit, then post (review, respond) or hand to the agent (self, respond) ----------
+const MODE = G.mode || "review";
+const CFG = DATA.config || { scrutiny: "light", minSeverity: "major", autoAccept: ["blocker", "major"] };
+const TOKEN = (document.querySelector('meta[name="grok-token"]') || {}).content || null;  // set only when served
+const SUMMARY = G.reviewBody ? { id: "summary", severity: "major", category: "summary", title: MODE === "self" ? "Root-cause change" : "Review summary comment" } : null;
+const ITEMS = [...(SUMMARY ? [SUMMARY] : []), ...FINDINGS];
+let DEC = store.get("decisions", {}), POSTED = [], editing = null;
+const postedIds = () => new Set(POSTED.flatMap(p => p.ids));
+// Mirrors default_status() in grok_pr.py.
+function defaultStatus(it) {
+  if (it.id === "summary" || CFG.autoAccept.includes(it.severity)) return "accepted";
+  return SEV.indexOf(it.severity) > SEV.indexOf(CFG.minSeverity) ? "skipped" : "pending";
+}
+const statusOf = it => postedIds().has(it.id) ? "posted" : ((DEC[it.id] || {}).status || defaultStatus(it));
+// The text that gets posted: an edit wins, else the generated comment (review, self) or the proposed reply (respond).
+function bodyFor(it) {
+  const d = DEC[it.id];
+  if (d && d.edited) return d.body;
+  if (it.id === "summary") return G.reviewBody.trim() + "\n";
+  return MODE === "respond" ? it.reply.trim() + "\n" : commentMarkdown(it);
+}
+// What the agent should change. Mirrors fix_text() in grok_pr.py.
+function fixText(it) {
+  if (MODE !== "respond" || it.id === "summary") return bodyFor(it);
+  const p = it.proposal;
+  return [it.quote ? it.quote.trim().split("\n").map(s => "> " + s).join("\n") : "", (it.detail || "").trim(), (it.suggestion || "").trim(),
+    p ? "```" + fenceLang(it) + "\n" + p.code.replace(/\n+$/, "") + "\n```" : "", p && p.note ? p.note.trim() : ""].filter(Boolean).join("\n\n") + "\n";
+}
+async function api(method, path, body) {
+  const r = await fetch(path, { method, headers: { "X-Grok-Token": TOKEN, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.status + " " + r.statusText);
+  return j;
+}
+// Every item gets an explicit status, and accepted ones a body snapshot, so decisions.json alone drives post/fixes.
+function saveDecisions() {
+  for (const it of ITEMS) {
+    const d = DEC[it.id] = DEC[it.id] || {};
+    if (!d.status) d.status = defaultStatus(it);
+    if (d.status === "accepted" && !d.edited) d.body = bodyFor(it);
+  }
+  store.set("decisions", DEC);
+  return TOKEN ? api("PUT", "/api/decisions", { decisions: DEC }).catch(e => toast("Could not save decisions: " + e.message, true)) : Promise.resolve();
+}
+function setStatus(it, s) {
+  if (statusOf(it) === "posted") return;
+  DEC[it.id] = { ...DEC[it.id], status: s };
+  saveDecisions();
+  if (rendered.findings) render("findings");
+  header();
+}
+function toast(msg, err, href) {
+  const t = document.getElementById("toast");
+  t.className = err ? "err" : "";
+  t.replaceChildren(msg, href ? el("a", { href, target: "_blank" }, "  Open on GitHub →") : "");
+}
+function triageBar(it) {
+  const s = statusOf(it);
+  if (s === "posted") return el("div", { class: "triage" }, pill("verified", MODE === "respond" ? "reply posted" : "posted"), el("span", { class: "small muted" }, "in a pending review"));
+  const verb = { review: "Post", self: "Fix", respond: "Fix + reply" }[MODE];
+  return el("div", { class: "triage", onclick: e => e.stopPropagation() },
+    el("button", { class: "tb acc" + (s === "accepted" ? " on" : ""), title: "Accept (y)", onclick: () => setStatus(it, "accepted") }, "✓ " + verb),
+    el("button", { class: "tb skp" + (s === "skipped" ? " on" : ""), title: "Skip (n)", onclick: () => setStatus(it, "skipped") }, "✕ Skip"),
+    el("button", { class: "tb", title: "Edit the text (e)", onclick: () => { editing = it.id; drawFindingList(); } }, "✎ Edit"),
+    s === "pending" ? el("span", { class: "chip" }, "undecided") : null,
+    (DEC[it.id] || {}).edited ? el("span", { class: "chip" }, "edited") : null,
+    el("span", { class: "grow" }),
+    el("span", { class: "small muted" }, el("kbd", {}, "y"), " ", el("kbd", {}, "n"), " ", el("kbd", {}, "e"), " ", el("kbd", {}, "u"), " undo"));
+}
+function editorFor(it) {
+  const ta = el("textarea", { spellcheck: "true" });
+  ta.value = bodyFor(it);
+  const close = () => { editing = null; drawFindingList(); };
+  const save = () => { DEC[it.id] = { status: "accepted", edited: true, body: ta.value }; saveDecisions(); editing = null; render("findings"); header(); };
+  ta.addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) save(); else if (e.key === "Escape") close(); });
+  setTimeout(() => ta.focus(), 0);
+  const d = DEC[it.id] || {};
+  return el("div", { class: "editor", onclick: e => e.stopPropagation() }, ta,
+    el("div", { class: "row" },
+      el("button", { class: "btn primary", onclick: save }, "Save and accept"), el("button", { class: "btn", onclick: close }, "Cancel"),
+      d.edited ? el("button", { class: "btn", onclick: () => { delete d.edited; delete d.body; saveDecisions(); close(); } }, "Reset to generated") : null,
+      el("span", { class: "grow" }), el("span", { class: "small muted" }, "Ctrl+Enter saves · Esc cancels")));
+}
+function summaryCard() {
+  return el("div", { class: "finding sev-major st-" + statusOf(SUMMARY), "data-fid": "summary" },
+    el("div", { class: "hd" }, el("span", { class: "chip" }, "summary"), el("strong", { class: "ttl" }, SUMMARY.title),
+      el("span", { class: "hd-r" }, el("button", { class: "btn copy", onclick: e => { e.stopPropagation(); copyText(bodyFor(SUMMARY), e.currentTarget, "Copy"); } }, "Copy"))),
+    mdEl(bodyFor(SUMMARY), "body"), triageBar(SUMMARY));
+}
+
+let fSev = new Set(), fCat = new Set(), fStatus = "all", fQuery = "", fSel = -1, SHOWN = [];
+function matches(it) {
+  if (fStatus !== "all" && statusOf(it) !== fStatus) return false;
+  if (it.id === "summary") { if (fSev.size || fCat.size) return false; }
+  else if ((fSev.size && !fSev.has(it.severity)) || (fCat.size && !fCat.has(it.category))) return false;
+  if (!fQuery.trim()) return true;
+  const hay = [it.title, it.detail, it.suggestion, it.path, it.category, it.quote, it.reply, it.author, it.evidence,
+    it.id === "summary" ? G.reviewBody : ""].join(" ").toLowerCase();
+  return fQuery.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w));
+}
+function findingList() {
+  SHOWN = ITEMS.filter(matches).sort((a, b) => (a.id === "summary" ? -1 : b.id === "summary" ? 1 : SEV.indexOf(a.severity) - SEV.indexOf(b.severity)));
+  if (!SHOWN.length) return [el("p", { class: "muted" }, ITEMS.length ? "Nothing matches the filter." : "No findings recorded.")];
+  return SHOWN.map((it, i) => {
+    const card = it.id === "summary" ? summaryCard() : findingCard(it, true);
+    if (i === fSel) card.classList.add("sel");
+    if (editing === it.id) card.append(editorFor(it));
+    card.addEventListener("click", () => { fSel = i; if (it.id !== "summary") jumpFinding(it); });
+    return card;
+  });
+}
+function drawFindingList() { const l = document.getElementById("flist"); if (l) l.replaceChildren(...findingList()); }
 function findingsView() {
   const cats = [...new Set(FINDINGS.map(f => f.category))];
-  const toggle = (set, v) => { set.has(v) ? set.delete(v) : set.add(v); render("findings"); };
-  const shown = FINDINGS.filter(f => (!fSev.size || fSev.has(f.severity)) && (!fCat.size || fCat.has(f.category)))
-    .sort((a, b) => SEV.indexOf(a.severity) - SEV.indexOf(b.severity));
+  const toggle = (set, v) => { set.has(v) ? set.delete(v) : set.add(v); fSel = -1; render("findings"); };
+  const search = el("input", { type: "search", class: "search", placeholder: "Search findings   /", value: fQuery });
+  search.addEventListener("input", () => { fQuery = search.value; fSel = -1; drawFindingList(); });
+  search.addEventListener("keydown", e => { if (e.key === "Escape" || e.key === "Enter") search.blur(); });
+  const count = s => ITEMS.filter(it => statusOf(it) === s).length;
+  const statuses = ["all", "pending", "accepted", "skipped", ...(POSTED.length ? ["posted"] : [])];
   return [
-    el("div", { class: "filters" },
+    el("div", { class: "filters" }, search,
+      el("div", { class: "seg fs" }, statuses.map(s => el("button", { class: fStatus === s ? "on" : "", onclick: () => { fStatus = s; fSel = -1; render("findings"); } },
+        s, s === "all" ? null : el("span", { class: "n" }, " " + count(s))))),
+      el("span", { class: "sep" }),
       SEV.map(s => el("button", { class: "btn" + (fSev.has(s) ? " on" : ""), onclick: () => toggle(fSev, s) }, s, " ", el("span", { class: "muted" }, FINDINGS.filter(f => f.severity === s).length))),
-      el("span", { style: "width:12px" }),
-      cats.map(c => el("button", { class: "btn" + (fCat.has(c) ? " on" : ""), onclick: () => toggle(fCat, c) }, c))),
-    shown.length ? el("div", { class: "findings" }, shown.map(f => { const card = findingCard(f, true); card.addEventListener("click", () => jumpFinding(f)); return card; }))
-      : el("p", { class: "muted" }, FINDINGS.length ? "No findings match the filter." : "No findings recorded."),
+      el("span", { class: "sep" }),
+      cats.map(c => el("button", { class: "btn" + (fCat.has(c) ? " on" : ""), onclick: () => toggle(fCat, c) }, c)),
+      el("span", { class: "grow" }),
+      el("span", { class: "small muted", title: CFG.sources && CFG.sources.length ? CFG.sources.join("\n") : "built-in default" },
+        "scrutiny ", el("b", {}, CFG.scrutiny), "  ·  ", el("kbd", {}, "j"), el("kbd", {}, "k"), " move")),
+    el("div", { class: "findings", id: "flist" }, findingList()),
   ];
+}
+function selectFinding(i) {
+  if (!SHOWN.length) return;
+  fSel = Math.max(0, Math.min(SHOWN.length - 1, i));
+  document.querySelectorAll("#flist .finding.sel").forEach(c => c.classList.remove("sel"));
+  const c = document.querySelector(`#flist .finding[data-fid="${SHOWN[fSel].id}"]`);
+  if (c) { c.classList.add("sel"); c.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+}
+// y/n move on to the next item; if the status filter just hid the item, the next one is already at fSel.
+function decide(it, s) { setStatus(it, s); selectFinding(SHOWN[fSel] && SHOWN[fSel].id === it.id ? fSel + 1 : fSel); }
+function findingKeys(e) {
+  if (e.key === "/") { e.preventDefault(); document.querySelector("#v-findings .search").focus(); return; }
+  if (["j", "k", "ArrowDown", "ArrowUp"].includes(e.key)) { e.preventDefault(); selectFinding(fSel + (e.key === "j" || e.key === "ArrowDown" ? 1 : -1)); return; }
+  const it = SHOWN[fSel];
+  if (!it) return;
+  if (e.key === "y") decide(it, "accepted");
+  else if (e.key === "n") decide(it, "skipped");
+  else if (e.key === "u") setStatus(it, "pending");
+  else if (e.key === "e") { e.preventDefault(); editing = it.id; drawFindingList(); }
+  else if ((e.key === "Enter" || e.key === "o") && it.id !== "summary") jumpFinding(it);
+}
+function fixListMarkdown() {
+  const items = ITEMS.filter(it => statusOf(it) === "accepted");
+  const lines = [`# Fixes for ${G.title}`, "", "Fix each item in the working tree following the repo's AGENTS.md and coding standards. " +
+    "Keep each change minimal, run the tests that cover it, and report fixed or declined with the reason.", ""];
+  items.forEach((it, i) => lines.push(`## ${i + 1}. [${it.id}] ${it.title}` + (it.path ? ` \`${it.path}${it.line ? ":" + it.line : ""}\`` : ""), "", fixText(it).trim(), ""));
+  return lines.join("\n");
+}
+function updateActions() {
+  const n = ITEMS.filter(it => statusOf(it) === "accepted").length;
+  const fix = document.getElementById("fix"), act = document.getElementById("act");
+  fix.hidden = MODE === "review";
+  fix.textContent = `Copy fix list (${n})`;
+  fix.disabled = !n;
+  fix.title = "Copies the accepted items as instructions for the agent." + (TOKEN ? " They are also saved to decisions.json, so you can tell the agent: fix the accepted findings." : "");
+  act.hidden = MODE === "self";
+  act.textContent = `${MODE === "respond" ? "Post replies" : "Post review"} (${n})`;
+  act.disabled = !n || !TOKEN;
+  act.title = TOKEN ? "Creates a pending review on GitHub; nothing is visible to others until you submit it there."
+    : "Run `python grok_pr.py serve <workdir>` and open the served page to post from here.";
 }
 // From the Findings tab a finding opens in Files, where every hunk and every off-diff finding renders;
 // the guide sidebar keeps the reader in the current step.
@@ -680,10 +880,29 @@ document.getElementById("mode").addEventListener("click", () => {
   header();
 });
 document.getElementById("copy").addEventListener("click", copyNotes);
+document.getElementById("fix").addEventListener("click", e => copyText(fixListMarkdown(), e.currentTarget, e.currentTarget.textContent));
+document.getElementById("act").addEventListener("click", async e => {
+  const n = ITEMS.filter(it => statusOf(it) === "accepted").length;
+  const what = MODE === "respond" ? `${n} replies` : `${n} comments`;
+  if (!confirm(`Create a pending review on GitHub with ${what}?\n\nNothing is visible to others until you submit it on GitHub.`)) return;
+  e.currentTarget.disabled = true;
+  toast("Posting…");
+  try {
+    await saveDecisions();
+    const res = await api("POST", "/api/post");
+    POSTED.push(res.record);
+    toast(`Pending review created (${res.record.ids.length} items). Submit it on GitHub.`, false, res.url);
+  } catch (err) {
+    toast("Post failed: " + err.message, true);
+  }
+  if (rendered.findings) render("findings");
+  header();
+});
 document.addEventListener("keydown", e => {
   if (e.ctrlKey || e.metaKey || e.altKey || /input|textarea|select/i.test(e.target.tagName)) return;
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= TABS.length) return go(TABS[n - 1][0]);
+  if (tab === "findings") return findingKeys(e);
   if (tab !== "guide") return;
   if (e.key === "j" || e.key === "ArrowRight") go("guide", cur + 1);
   else if (e.key === "k" || e.key === "ArrowLeft") go("guide", cur - 1);
@@ -691,6 +910,15 @@ document.addEventListener("keydown", e => {
 });
 window.addEventListener("hashchange", route);
 route();
+// Served: the server's decisions win (they survive restarts and other tabs); then fill in defaults and sync back.
+(TOKEN ? api("GET", "/api/state").then(s => {
+  if (Object.keys(s.decisions || {}).length) DEC = s.decisions;
+  POSTED = s.posted || [];
+}).catch(e => toast("Server unreachable: " + e.message, true)) : Promise.resolve()).then(() => {
+  saveDecisions();
+  if (rendered.findings) render("findings");
+  header();
+});
 </script>
 <script type="module">
 try {

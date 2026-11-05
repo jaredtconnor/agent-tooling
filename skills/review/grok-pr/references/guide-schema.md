@@ -5,6 +5,7 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
 ```jsonc
 {
   "id": "owner/repo#252",                 // localStorage key for reviewed state; defaults to url, then title
+  "mode": "review",                       // review (default) | self | respond; see SKILL.md
   "title": "Share one retry policy across HTTP clients",
   "url": "https://github.com/owner/repo/pull/252",
   "author": "Jane Doe",
@@ -62,7 +63,7 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
   "findings": [
     {
       "severity": "major",                // blocker | major | minor | nit
-      "category": "correctness",          // correctness | syntax | performance | design | tests | security | scope | docs
+      "category": "correctness",          // correctness | syntax | performance | design | tests | security | scope | standards | docs
       "path": "src/Rules.cs",
       "line": 172,                        // line number on `side`
       "side": "new",                      // new (default) | old, for deleted lines
@@ -92,9 +93,24 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
 }
 ```
 
+## `respond` mode items
+
+Each item in `findings` is one piece of feedback. On top of the fields above (`detail`, `suggestion` and `proposal` describe impact, reasoning and the fix; they are not posted):
+
+```jsonc
+{
+  "thread": "PRRT_kwDO…",          // review thread node id from `grok_pr.py threads`; omit for review-level feedback
+  "author": "reviewer-login",
+  "url": "https://github.com/…#discussion_r123",
+  "quote": "The reviewer's comment, verbatim.",
+  "assessment": "agree",            // required: agree | partly | disagree | question
+  "reply": "Kept the stored value when `os` is omitted on update; covered by `Put_OmittedOs_KeepsStoredValue`."  // required; posted
+}
+```
+
 ## Rules the renderer enforces
 
-- Unknown hunk IDs or file paths in `chapters[].hunks`, unknown `severity` or `category`, invalid canvas statuses, and a `proposal` without `code` or with a malformed `replaces` are errors (exit 2).
+- Unknown hunk IDs or file paths in `chapters[].hunks`, unknown `severity`, `category` or `mode`, invalid canvas statuses, a `proposal` without `code` or with a malformed `replaces`, and in `respond` mode an item without `reply` or a valid `assessment` are errors (exit 2).
 - `proposal.replaces` shows the current lines from `--repo`/`--ref`, else from the diff when the whole range is inside hunks; otherwise the page shows only the expected code, with a warning.
 - Hunks no chapter references go into an auto "Other changes" chapter, with a warning.
 - A finding appears inline in the diff only when its `line` falls inside a hunk on its `side`. Other findings, including those whose `path` is not in the diff, render in the Files tab under "Findings outside the diff", with source lines from `render --repo … --ref …` when given.
