@@ -237,6 +237,15 @@ def build(guide: dict, files: list[dict]) -> tuple[dict, list[str], list[str]]:
             errors.append(f"findings[{fi}] is missing title")
         path, line = f.get("path"), f.get("line")
         f["chapter"] = None
+        p = f.get("proposal")
+        if p is not None:
+            if not isinstance(p, dict) or not isinstance(p.get("code"), str) or not p["code"].strip():
+                errors.append(f"findings[{fi}].proposal needs a non-empty code string")
+            elif "replaces" in p and not (
+                isinstance(p["replaces"], list) and len(p["replaces"]) == 2
+                and all(isinstance(n, int) for n in p["replaces"]) and 0 < p["replaces"][0] <= p["replaces"][1]
+            ):
+                errors.append(f"findings[{fi}].proposal.replaces must be [start, end] line numbers on the new side")
         # inDiff: the finding renders inline in a diff hunk; otherwise the page lists it under
         # "Findings outside the diff" with a source excerpt when one is available.
         f["inDiff"] = bool(
@@ -279,29 +288,56 @@ def build(guide: dict, files: list[dict]) -> tuple[dict, list[str], list[str]]:
 EXCERPT_CONTEXT = 8
 
 
-def add_excerpts(findings: list[dict], repo: Path, ref: str) -> list[str]:
-    """Attach source lines around findings that the diff cannot show inline."""
+def attach_source(findings: list[dict], files: list[dict], repo: Path | None, ref: str) -> list[str]:
+    """Attach source lines the page cannot get from the diff.
+
+    - `excerpt`: lines around a finding that is not on a changed line (needs --repo).
+    - `proposal.before`: the current lines a proposal replaces, from the repo when given,
+      else from the diff when every line in the range is inside a hunk.
+    """
     warnings: list[str] = []
     cache: dict[str, list[str] | None] = {}
-    for f in findings:
-        path, line = f.get("path"), f.get("line")
-        if f["inDiff"] or not path or not isinstance(line, int) or f["side"] != "new":
-            continue
+    by_path = {f["path"]: f for f in files}
+
+    def repo_lines(path: str) -> list[str] | None:
+        if repo is None:
+            return None
         if path not in cache:
             res = subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{path}"], capture_output=True)
             if res.returncode:
-                warnings.append(f"no excerpt for {path}: {res.stderr.decode('utf-8', 'replace').strip()}")
+                warnings.append(f"no source for {path} at {ref}: {res.stderr.decode('utf-8', 'replace').strip()}")
                 cache[path] = None
             else:
                 cache[path] = res.stdout.decode("utf-8-sig", "replace").splitlines()
-        lines = cache[path]
-        if not lines:
+        return cache[path]
+
+    def diff_lines(path: str, start: int, end: int) -> list[str] | None:
+        f = by_path.get(path)
+        if not f:
+            return None
+        new = {n: s for h in f["hunks"] for t, _, n, s in h["lines"] if n is not None}
+        return [new[n] for n in range(start, end + 1)] if all(n in new for n in range(start, end + 1)) else None
+
+    for f in findings:
+        path, line = f.get("path"), f.get("line")
+        if repo and path and isinstance(line, int) and not f["inDiff"] and f["side"] == "new":
+            lines = repo_lines(path)
+            if lines and line > len(lines):
+                warnings.append(f"{f['id']} line {line} is past the end of {path} at {ref} ({len(lines)} lines)")
+            elif lines:
+                start = max(1, line - EXCERPT_CONTEXT)
+                f["excerpt"] = {"start": start, "lines": lines[start - 1:line + EXCERPT_CONTEXT]}
+
+        p = f.get("proposal")
+        if not p or "replaces" not in p or not path:
             continue
-        if line > len(lines):
-            warnings.append(f"{f['id']} line {line} is past the end of {path} at {ref} ({len(lines)} lines)")
-            continue
-        start = max(1, line - EXCERPT_CONTEXT)
-        f["excerpt"] = {"start": start, "lines": lines[start - 1:line + EXCERPT_CONTEXT]}
+        start, end = p["replaces"]
+        lines = repo_lines(path)
+        before = lines[start - 1:end] if lines and end <= len(lines) else diff_lines(path, start, end)
+        if before is None:
+            warnings.append(f"{f['id']} proposal.replaces {start}-{end} in {path} is not in the diff; pass --repo/--ref to show the current code")
+        else:
+            p["before"] = {"start": start, "lines": before}
     return warnings
 
 
@@ -318,8 +354,8 @@ def cmd_render(guide_path: Path, diff_path: Path, out: Path | None, open_browser
         return 2
 
     data, errors, warnings = build(guide, files)
-    if repo and not errors:
-        warnings += add_excerpts(data["guide"].get("findings") or [], repo, ref)
+    if not errors:
+        warnings += attach_source(data["guide"].get("findings") or [], files, repo, ref)
     for w in warnings:
         print(f"WARN: {w}", file=sys.stderr)
     if errors:

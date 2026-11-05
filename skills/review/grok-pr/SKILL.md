@@ -69,6 +69,8 @@ List structural changes: added or removed types and public members, signature ch
 
 Every finding needs a severity, `path` and `line` on the side where the problem lives, evidence in `detail`, and a concrete `suggestion`. Set `confidence: "inferred"` unless you confirmed it by reading the callers and tests or by running code. Skip style nits the repo standards do not require.
 
+Add a `proposal` with the expected shape of the code to every blocker and major, and to any design, tests or scope finding whose fix is structural: a refactor, a moved responsibility, a new method boundary, a missing test. It is what the reviewer pastes into the PR comment, so write the shape, not a full patch: real names from the repo, signatures and the lines that decide the behavior, `// ...` for bodies that do not matter. When it rewrites existing code, set `replaces: [start, end]` (head line numbers) so the page shows current against expected. When it adds code elsewhere, such as a new test, set `path` to where it goes. Put setup caveats in `note` (for example, which existing helper a test must use to build its fixture). Check that every API the proposal calls exists; if you could not, say so in `note`. Skip proposals for nits and for fixes the `suggestion` already states in full.
+
 For PRs over roughly 1,500 changed lines, give each chapter's findings pass to a subagent with the intent, the chapter's hunk IDs and the category table, then merge and dedupe.
 
 ### 7. Fill the canvas and the verdict
@@ -89,7 +91,7 @@ python scripts/grok_pr.py render "$WORK/guide.json" "$WORK/pr.diff" --repo <repo
 
 ## The page
 
-Tabs: Overview (TL;DR, intent and criteria, verdict, salient changes, risks, verification), Guide (one step at a time, narrative beside the diff, findings inline), Structure, Findings (filter by severity and category; clicking a finding opens Files scrolled to it, its "step N" chip opens the guide step), Canvas (readiness gauge, overridable statuses), Files (a "Findings outside the diff" section with source excerpts, then every diff). Keys: `1` to `6` switch tabs, `j`/`k` next and previous step, `r` marks a step reviewed. Split or unified diff toggle. Reviewed state and canvas overrides persist in the browser. "Copy review notes" copies the verdict, findings and canvas concerns as Markdown. Highlight.js and Mermaid load from jsDelivr; offline, code renders plain and diagrams show their source.
+Tabs: Overview (TL;DR, intent and criteria, verdict, salient changes, risks, verification), Guide (one step at a time, narrative beside the diff, findings inline), Structure, Findings (filter by severity and category; clicking a finding opens Files scrolled to it, its "step N" chip opens the guide step), Canvas (readiness gauge, overridable statuses), Files (a "Findings outside the diff" section with source excerpts, then every diff). Findings with a `proposal` show an "Expected shape" block: current against expected when it replaces lines, else the code to add. Each finding's "Copy comment" button copies it as a PR review comment (title, detail, suggestion, fenced code, note). Keys: `1` to `6` switch tabs, `j`/`k` next and previous step, `r` marks a step reviewed. Split or unified diff toggle. Reviewed state and canvas overrides persist in the browser. "Copy review notes" copies the verdict, findings with their code and canvas concerns as Markdown. Highlight.js and Mermaid load from jsDelivr; offline, code renders plain and diagrams show their source.
 
 ## Report
 

@@ -67,7 +67,13 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
       "title": "Non-idempotent POST is retried",
       "detail": "Evidence: what the code does and why it is wrong.",
       "suggestion": "Concrete fix.",
-      "confidence": "verified"            // verified | inferred
+      "confidence": "verified",           // verified | inferred
+      "proposal": {                       // optional: expected shape of the fix
+        "code": "if (!request.IsIdempotent)\n    return await send(request);\nreturn await _policy.Execute(() => send(request));",
+        "replaces": [168, 174],           // optional: head lines it rewrites; the page shows current vs expected
+        "path": "tests/RetryPolicyTests.cs", // optional: where new code goes when it is not the finding's file
+        "note": "Setup caveats, or which APIs were not verified."  // optional
+      }
     }
   ],
 
@@ -85,6 +91,7 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
 
 ## Rules the renderer enforces
 
-- Unknown hunk IDs or file paths in `chapters[].hunks`, unknown `severity` or `category`, and invalid canvas statuses are errors (exit 2).
+- Unknown hunk IDs or file paths in `chapters[].hunks`, unknown `severity` or `category`, invalid canvas statuses, and a `proposal` without `code` or with a malformed `replaces` are errors (exit 2).
+- `proposal.replaces` shows the current lines from `--repo`/`--ref`, else from the diff when the whole range is inside hunks; otherwise the page shows only the expected code, with a warning.
 - Hunks no chapter references go into an auto "Other changes" chapter, with a warning.
 - A finding appears inline in the diff only when its `line` falls inside a hunk on its `side`. Other findings, including those whose `path` is not in the diff, render in the Files tab under "Findings outside the diff", with source lines from `render --repo … --ref …` when given.

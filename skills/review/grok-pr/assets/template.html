@@ -83,6 +83,11 @@ h3:first-child { margin-top:0 }
 .file.done .body { display:none } .file.done.open .body { display:block }
 .diff td.hit { background:rgba(242,201,76,.16) } .diff td.ln.hit { background:rgba(242,201,76,.3); color:var(--fg); opacity:1 }
 .gap-head { background:var(--panel2); padding:4px 12px; border-top:1px solid var(--border) }
+.proposal { margin-top:8px; border:1px solid var(--border); border-radius:6px; overflow:hidden }
+.proposal .ph { padding:4px 10px; background:var(--panel2); font-size:12px; color:var(--muted) }
+.proposal .ph strong { color:var(--fg) }
+.proposal .pn { padding:6px 10px; border-top:1px solid var(--border); font-size:12.5px }
+.finding .copy { margin-left:auto; font-size:11.5px; padding:1px 8px }
 .empty { padding:12px; color:var(--muted); font-size:12.5px }
 table.diff { width:100%; border-collapse:collapse; font:12px/1.6 var(--mono); table-layout:fixed }
 .diff td { padding:0 10px; white-space:pre-wrap; overflow-wrap:anywhere; vertical-align:top }
@@ -240,9 +245,42 @@ function findingCard(f, withLoc) {
       f.confidence === "inferred" ? el("span", { class: "chip", title: "Not verified by running code or reading every caller" }, "inferred") : null,
       el("strong", {}, f.title),
       withLoc && f.path ? el("span", { class: "loc grow", style: "text-align:right" }, f.path + (f.line ? ":" + f.line : ""), f.inDiff ? "" : " (outside diff)") : null,
-      step),
+      step,
+      el("button", { class: "btn copy", title: "Copy as a PR review comment (Markdown)",
+        onclick: e => { e.stopPropagation(); copyText(commentMarkdown(f), e.currentTarget, "Copy comment"); } }, "Copy comment")),
     f.detail ? mdEl(f.detail) : null,
-    f.suggestion ? el("div", { class: "sg", html: "<strong>Suggestion</strong> " + md(f.suggestion) }) : null);
+    f.suggestion ? el("div", { class: "sg", html: "<strong>Suggestion</strong> " + md(f.suggestion) }) : null,
+    proposalBlock(f));
+}
+// The expected shape of the fix: a before/after diff when it replaces lines, else the code to add.
+function proposalBlock(f) {
+  const p = f.proposal;
+  if (!p) return null;
+  const lang = langFor(p.path || f.path || "");
+  const row = (sign, n, s) => el("tr", {}, el("td", { class: "ln " + sign }, n ?? ""), el("td", { class: sign, html: hl(s, lang) || " " }));
+  const before = p.before ? p.before.lines.map((s, i) => row("d", p.before.start + i, s)) : [];
+  // Display only: shift unindented expected code to the current code's indent so the two align.
+  const indent = ls => Math.min(...ls.filter(s => s.trim()).map(s => s.match(/^\s*/)[0].length), Infinity);
+  let code = p.code.replace(/\n+$/, "").split("\n");
+  const shift = p.before ? indent(p.before.lines) - indent(code) : 0;
+  if (shift > 0 && shift !== Infinity) code = code.map(s => s.trim() ? " ".repeat(shift) + s : s);
+  const after = code.map(s => row(p.before ? "a" : "", "", s));
+  const where = p.before ? `replaces lines ${p.replaces[0]}–${p.replaces[1]}` : p.replaces ? `replaces lines ${p.replaces[0]}–${p.replaces[1]} (current code not available)` : p.path ? "add to " + p.path : "";
+  return el("div", { class: "proposal" },
+    el("div", { class: "ph" }, el("strong", {}, "Expected shape"), where ? "  ·  " + where : ""),
+    el("table", { class: "diff" }, el("colgroup", {}, el("col", { style: "width:54px" }), el("col")), el("tbody", {}, before, after)),
+    p.note ? el("div", { class: "pn", html: md(p.note) }) : null);
+}
+function fenceLang(f) { const p = f.proposal.path || f.path || ""; return LANG[p.split(".").pop().toLowerCase()] || ""; }
+function commentMarkdown(f) {
+  const parts = [`**${f.title}**`];
+  if (f.detail) parts.push(f.detail.trim());
+  if (f.suggestion) parts.push(f.suggestion.trim());
+  if (f.proposal) {
+    parts.push("```" + fenceLang(f) + "\n" + f.proposal.code.replace(/\n+$/, "") + "\n```");
+    if (f.proposal.note) parts.push(f.proposal.note.trim());
+  }
+  return parts.join("\n\n") + "\n";
 }
 function reviewedFiles() { return store.get("files", {}); }
 function renderFile(file, hunkIds) {
@@ -598,6 +636,10 @@ function reviewNotes() {
     for (const f of [...FINDINGS].sort((a, b) => SEV.indexOf(a.severity) - SEV.indexOf(b.severity))) {
       lines.push(`- **${f.severity} · ${f.category}** ${f.path ? "`" + f.path + (f.line ? ":" + f.line : "") + "` " : ""}${f.title}` +
         (f.detail ? `. ${f.detail.replace(/\s+/g, " ")}` : "") + (f.suggestion ? ` Suggestion: ${f.suggestion.replace(/\s+/g, " ")}` : ""));
+      if (f.proposal) {
+        const code = "```" + fenceLang(f) + "\n" + f.proposal.code.replace(/\n+$/, "") + "\n```";
+        lines.push("", code.split("\n").map(s => "  " + s).join("\n"), "");
+      }
     }
     lines.push("");
   }
@@ -608,14 +650,14 @@ function reviewNotes() {
   }
   return lines.join("\n").trim() + "\n";
 }
-async function copyNotes() {
-  const text = reviewNotes(), btn = document.getElementById("copy");
+async function copyText(text, btn, label) {
   try { await navigator.clipboard.writeText(text); }
   catch {
     const ta = el("textarea", { style: "position:fixed;opacity:0" }); ta.value = text; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove();
   }
-  btn.textContent = "Copied"; setTimeout(() => { btn.textContent = "Copy review notes"; }, 1500);
+  btn.textContent = "Copied"; setTimeout(() => { btn.textContent = label; }, 1500);
 }
+const copyNotes = () => copyText(reviewNotes(), document.getElementById("copy"), "Copy review notes");
 
 document.getElementById("mode").addEventListener("click", () => {
   mode = mode === "split" ? "unified" : "split"; store.set("mode", mode);
