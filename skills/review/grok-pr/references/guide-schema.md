@@ -87,5 +87,4 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
 
 - Unknown hunk IDs or file paths in `chapters[].hunks`, unknown `severity` or `category`, and invalid canvas statuses are errors (exit 2).
 - Hunks no chapter references go into an auto "Other changes" chapter, with a warning.
-- A finding whose `path` is not in the diff still appears in the Findings tab; it cannot be shown inline.
-- A finding appears inline in the diff only when its `line` falls inside a rendered hunk on its `side`.
+- A finding appears inline in the diff only when its `line` falls inside a hunk on its `side`. Other findings, including those whose `path` is not in the diff, render in the Files tab under "Findings outside the diff", with source lines from `render --repo … --ref …` when given.

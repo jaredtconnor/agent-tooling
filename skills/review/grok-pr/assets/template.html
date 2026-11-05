@@ -80,7 +80,9 @@ h3:first-child { margin-top:0 }
 .fhead { display:flex; gap:10px; align-items:center; padding:7px 12px; border-bottom:1px solid var(--border); font-size:12.5px; position:sticky; top:84px; z-index:2; background:var(--panel) }
 .fhead .nm { font-weight:600 } .fhead .dir { color:var(--muted) }
 .fhead label { margin-left:auto; display:flex; gap:5px; align-items:center; color:var(--muted); cursor:pointer }
-.file.done .body { display:none }
+.file.done .body { display:none } .file.done.open .body { display:block }
+.diff td.hit { background:rgba(242,201,76,.16) } .diff td.ln.hit { background:rgba(242,201,76,.3); color:var(--fg); opacity:1 }
+.gap-head { background:var(--panel2); padding:4px 12px; border-top:1px solid var(--border) }
 .empty { padding:12px; color:var(--muted); font-size:12.5px }
 table.diff { width:100%; border-collapse:collapse; font:12px/1.6 var(--mono); table-layout:fixed }
 .diff td { padding:0 10px; white-space:pre-wrap; overflow-wrap:anywhere; vertical-align:top }
@@ -231,11 +233,14 @@ function hl(text, lang) {
   try { return hljs.highlight(text, { language: lang, ignoreIllegals: true }).value; } catch { return esc(text); }
 }
 function findingCard(f, withLoc) {
-  return el("div", { class: "finding sev-" + f.severity, id: withLoc ? null : "f-" + f.id, "data-fid": f.id },
+  const step = withLoc && f.chapter != null ? el("a", { class: "chip", href: "#guide/" + (f.chapter + 1), title: "Open in the guide",
+    onclick: e => { e.preventDefault(); e.stopPropagation(); jumpFinding(f, "guide"); } }, "step " + (f.chapter + 1)) : null;
+  return el("div", { class: "finding sev-" + f.severity, "data-fid": f.id },
     el("div", { class: "hd" }, pill(f.severity), el("span", { class: "chip" }, f.category),
       f.confidence === "inferred" ? el("span", { class: "chip", title: "Not verified by running code or reading every caller" }, "inferred") : null,
       el("strong", {}, f.title),
-      withLoc && f.path ? el("span", { class: "loc grow", style: "text-align:right" }, f.path + (f.line ? ":" + f.line : "")) : null),
+      withLoc && f.path ? el("span", { class: "loc grow", style: "text-align:right" }, f.path + (f.line ? ":" + f.line : ""), f.inDiff ? "" : " (outside diff)") : null,
+      step),
     f.detail ? mdEl(f.detail) : null,
     f.suggestion ? el("div", { class: "sg", html: "<strong>Suggestion</strong> " + md(f.suggestion) }) : null);
 }
@@ -439,7 +444,7 @@ function guide() {
         el("span", {}, delta(hs.reduce((s, h) => s + h.add, 0), hs.reduce((s, h) => s + h.del, 0))));
     })),
     chFindings.length ? el("h3", {}, "Findings in this step") : null,
-    chFindings.length ? el("ul", { class: "list" }, chFindings.map(f => el("li", { class: "click row", onclick: () => jumpFinding(f) },
+    chFindings.length ? el("ul", { class: "list" }, chFindings.map(f => el("li", { class: "click row", onclick: () => jumpFinding(f, "guide") },
       pill(f.severity), el("span", { class: "lbl grow" }, f.title), el("span", { class: "loc" }, f.line ? ":" + f.line : "")))) : null,
     el("div", { class: "nav" },
       el("button", { class: "btn", disabled: cur === 0, onclick: () => go("guide", cur - 1) }, "← Prev"),
@@ -494,10 +499,36 @@ function findingsView() {
       : el("p", { class: "muted" }, FINDINGS.length ? "No findings match the filter." : "No findings recorded."),
   ];
 }
-function jumpFinding(f) {
-  if (f.chapter == null) { go("files"); flash(document.querySelector(`#v-files .file[data-path="${CSS.escape(f.path || "")}"]`)); return; }
-  go("guide", f.chapter);
-  requestAnimationFrame(() => flash(document.getElementById("f-" + f.id) || document.querySelector(`#v-guide .file[data-path="${CSS.escape(f.path)}"]`)));
+// From the Findings tab a finding opens in Files, where every hunk and every off-diff finding renders;
+// the guide sidebar keeps the reader in the current step.
+function jumpFinding(f, where = "files") {
+  const inGuide = where === "guide" && f.chapter != null;
+  if (inGuide) go("guide", f.chapter); else go("files");
+  const view = inGuide ? "#v-guide" : "#v-files";
+  const card = document.querySelector(`${view} .finding[data-fid="${f.id}"]`);
+  const file = (card && card.closest(".file")) || document.querySelector(`${view} .file[data-path="${CSS.escape(f.path || "")}"]`);
+  if (file) file.classList.add("open");  // a file marked reviewed is collapsed; show it without un-reviewing it
+  requestAnimationFrame(() => flash(card || file));
+}
+
+function outsideDiff() { return FINDINGS.filter(f => !f.inDiff); }
+function renderOutside() {
+  const fs = outsideDiff();
+  if (!fs.length) return null;
+  return el("section", { class: "file", id: "outside-diff" },
+    el("div", { class: "fhead" }, el("span", { class: "nm" }, "Findings outside the diff"), el("span", { class: "dir" }, fs.length + " not on a changed line")),
+    el("div", { class: "body" }, fs.map(f => {
+      const x = f.excerpt, lang = f.path ? langFor(f.path) : null;
+      const table = x ? el("table", { class: "diff" }, el("colgroup", {}, el("col", { style: "width:54px" }), el("col")),
+        el("tbody", {}, x.lines.map((s, i) => {
+          const n = x.start + i, c = n === f.line ? "hit" : "";
+          return el("tr", {}, el("td", { class: "ln " + c }, n), el("td", { class: c, html: hl(s, lang) || " " }));
+        }))) : null;
+      return el("div", { "data-path": f.path || "" },
+        el("div", { class: "gap-head" }, el("span", { class: "loc" }, (f.path || "no file") + (f.line ? ":" + f.line : ""),
+          byPath.has(f.path) ? "  (changed file; this line is unchanged)" : "  (file not changed by this PR)")),
+        table, findingCard(f));
+    })));
 }
 
 function canvasView() {
@@ -527,7 +558,11 @@ function filesView() {
         el("span", { class: "ck", style: "width:12px;color:var(--green)", "data-ck-path": f.path }, r[f.path] ? "✓" : ""),
         el("span", { class: "st st-" + f.status }, f.status[0].toUpperCase()), el("span", { class: "nm" }, name), el("span", { class: "dir" }, dir), el("span", {}, delta(f.add, f.del)));
     })));
-  return [el("div", { class: "files-layout" }, list, el("div", {}, FILES.map(f => renderFile(f, null))))];
+  const outside = outsideDiff();
+  if (outside.length) list.append(el("h3", {}, "Outside the diff"),
+    el("ul", { class: "list flist" }, outside.map(f => el("li", { onclick: () => jumpFinding(f) },
+      pill(f.severity), el("span", { class: "nm" }, split(f.path || "")[0] || f.title), el("span", { class: "dir" }, f.line ? ":" + f.line : "")))));
+  return [el("div", { class: "files-layout" }, list, el("div", {}, renderOutside(), FILES.map(f => renderFile(f, null))))];
 }
 
 const VIEWS = { overview, guide, structure, findings: findingsView, canvas: canvasView, files: filesView };

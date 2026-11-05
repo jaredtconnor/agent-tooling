@@ -21,7 +21,7 @@ Keep every artifact in a work directory outside the reviewed repo: `WORK=~/Docum
 
 ### 1. Gather context
 
-- PR metadata: `gh pr view <n> --json number,title,body,author,baseRefName,headRefName,url,commits,files,closingIssuesReferences`
+- PR metadata: `gh pr view <n> --json number,title,body,author,baseRefName,headRefName,headRefOid,url,commits,files,closingIssuesReferences`
 - Diff, GitHub: `gh pr diff <n> --color=never > "$WORK/pr.diff"`. Local: `git diff --find-renames --output="$WORK/pr.diff" <base>...<head>`. The script also reads the UTF-16 files Windows PowerShell 5 redirection produces.
 - Linear review URL: resolve it with the Linear MCP `get_diff` tool to the repo and PR, then fetch as above.
 - Issues: collect keys from the title, branch, body and commits (`ABC-123`, `#45`). Linear: `get_issue` plus `list_comments`. GitHub: `gh issue view <n> --comments`. Read acceptance criteria and the discussion, not just the title.
@@ -82,14 +82,14 @@ Write the verdict plainly. A PR that misses its issue, mixes concerns, or lacks 
 Write `$WORK/guide.json` following [references/guide-schema.md](references/guide-schema.md), then run:
 
 ```bash
-python scripts/grok_pr.py render "$WORK/guide.json" "$WORK/pr.diff"
+python scripts/grok_pr.py render "$WORK/guide.json" "$WORK/pr.diff" --repo <repo> --ref <headRefOid>
 ```
 
-It writes `index.html` next to `guide.json` and opens it (`--out` and `--no-open` change that). Exit code 2 lists schema errors: fix `guide.json` and rerun. Treat `WARN` lines about unnarrated hunks or off-diff findings as defects unless intended.
+`--repo`/`--ref` let the page show source lines around findings on unchanged lines or in files the PR does not touch; if the head commit is missing locally, `git fetch origin pull/<n>/head` first. Omit both when no checkout exists; those findings then render without code. The script writes `index.html` next to `guide.json` and opens it (`--out` and `--no-open` change that). Exit code 2 lists schema errors: fix `guide.json` and rerun. Treat `WARN` lines about unnarrated hunks as defects unless intended.
 
 ## The page
 
-Tabs: Overview (TL;DR, intent and criteria, verdict, salient changes, risks, verification), Guide (one step at a time, narrative beside the diff, findings inline), Structure, Findings (filter by severity and category, click to jump), Canvas (readiness gauge, overridable statuses), Files (every diff). Keys: `1` to `6` switch tabs, `j`/`k` next and previous step, `r` marks a step reviewed. Split or unified diff toggle. Reviewed state and canvas overrides persist in the browser. "Copy review notes" copies the verdict, findings and canvas concerns as Markdown. Highlight.js and Mermaid load from jsDelivr; offline, code renders plain and diagrams show their source.
+Tabs: Overview (TL;DR, intent and criteria, verdict, salient changes, risks, verification), Guide (one step at a time, narrative beside the diff, findings inline), Structure, Findings (filter by severity and category; clicking a finding opens Files scrolled to it, its "step N" chip opens the guide step), Canvas (readiness gauge, overridable statuses), Files (a "Findings outside the diff" section with source excerpts, then every diff). Keys: `1` to `6` switch tabs, `j`/`k` next and previous step, `r` marks a step reviewed. Split or unified diff toggle. Reviewed state and canvas overrides persist in the browser. "Copy review notes" copies the verdict, findings and canvas concerns as Markdown. Highlight.js and Mermaid load from jsDelivr; offline, code renders plain and diagrams show their source.
 
 ## Report
 

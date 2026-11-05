@@ -3,11 +3,12 @@
 
 Usage:
   python grok_pr.py hunks <pr.diff>
-  python grok_pr.py render <guide.json> <pr.diff> [--out index.html] [--no-open]
+  python grok_pr.py render <guide.json> <pr.diff> [--repo DIR --ref REF] [--out index.html] [--no-open]
 
 `hunks` prints the hunk IDs (`path#N`) that guide chapters reference.
 `render` validates the guide against the diff, writes the page next to the
-guide (or to --out) and opens it in the default browser.
+guide (or to --out) and opens it in the default browser. With --repo, findings
+whose line is outside the diff get the surrounding source from `git show REF:path`.
 
 Standard library only. Exit 2 means the guide has errors; they are listed.
 """
@@ -17,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 import webbrowser
 from datetime import datetime, timezone
@@ -235,8 +237,14 @@ def build(guide: dict, files: list[dict]) -> tuple[dict, list[str], list[str]]:
             errors.append(f"findings[{fi}] is missing title")
         path, line = f.get("path"), f.get("line")
         f["chapter"] = None
+        # inDiff: the finding renders inline in a diff hunk; otherwise the page lists it under
+        # "Findings outside the diff" with a source excerpt when one is available.
+        f["inDiff"] = bool(
+            path in by_path and isinstance(line, int)
+            and any(in_hunk(h, line, f["side"]) for h in by_path[path]["hunks"])
+        )
         if path and path not in by_path:
-            warnings.append(f"findings[{fi}] path is not in the diff: {path}")
+            warnings.append(f"findings[{fi}] is in a file the diff does not touch ({path}); listed under 'Findings outside the diff'")
             continue
         for ci, ch in enumerate(chapters):
             ref = next((r for r in ch["refs"] if r["path"] == path), None)
@@ -268,7 +276,37 @@ def build(guide: dict, files: list[dict]) -> tuple[dict, list[str], list[str]]:
     return data, errors, warnings
 
 
-def cmd_render(guide_path: Path, diff_path: Path, out: Path | None, open_browser: bool) -> int:
+EXCERPT_CONTEXT = 8
+
+
+def add_excerpts(findings: list[dict], repo: Path, ref: str) -> list[str]:
+    """Attach source lines around findings that the diff cannot show inline."""
+    warnings: list[str] = []
+    cache: dict[str, list[str] | None] = {}
+    for f in findings:
+        path, line = f.get("path"), f.get("line")
+        if f["inDiff"] or not path or not isinstance(line, int) or f["side"] != "new":
+            continue
+        if path not in cache:
+            res = subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{path}"], capture_output=True)
+            if res.returncode:
+                warnings.append(f"no excerpt for {path}: {res.stderr.decode('utf-8', 'replace').strip()}")
+                cache[path] = None
+            else:
+                cache[path] = res.stdout.decode("utf-8-sig", "replace").splitlines()
+        lines = cache[path]
+        if not lines:
+            continue
+        if line > len(lines):
+            warnings.append(f"{f['id']} line {line} is past the end of {path} at {ref} ({len(lines)} lines)")
+            continue
+        start = max(1, line - EXCERPT_CONTEXT)
+        f["excerpt"] = {"start": start, "lines": lines[start - 1:line + EXCERPT_CONTEXT]}
+    return warnings
+
+
+def cmd_render(guide_path: Path, diff_path: Path, out: Path | None, open_browser: bool,
+               repo: Path | None = None, ref: str = "HEAD") -> int:
     try:
         guide = json.loads(read_text(guide_path))
     except json.JSONDecodeError as exc:
@@ -280,6 +318,8 @@ def cmd_render(guide_path: Path, diff_path: Path, out: Path | None, open_browser
         return 2
 
     data, errors, warnings = build(guide, files)
+    if repo and not errors:
+        warnings += add_excerpts(data["guide"].get("findings") or [], repo, ref)
     for w in warnings:
         print(f"WARN: {w}", file=sys.stderr)
     if errors:
@@ -308,10 +348,12 @@ def main() -> int:
     p_r.add_argument("diff", type=Path)
     p_r.add_argument("--out", type=Path)
     p_r.add_argument("--no-open", action="store_true")
+    p_r.add_argument("--repo", type=Path, help="git repo to read source excerpts from")
+    p_r.add_argument("--ref", default="HEAD", help="commit for excerpts; use the PR head SHA")
     args = parser.parse_args()
     if args.cmd == "hunks":
         return cmd_hunks(args.diff)
-    return cmd_render(args.guide, args.diff, args.out, not args.no_open)
+    return cmd_render(args.guide, args.diff, args.out, not args.no_open, args.repo, args.ref)
 
 
 if __name__ == "__main__":
