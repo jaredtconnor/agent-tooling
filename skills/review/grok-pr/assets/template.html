@@ -197,12 +197,20 @@ function el(tag, attrs, ...kids) {
   return e;
 }
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-function md(s) {
-  return String(s ?? "").trim().split(/\n{2,}/).map(p => "<p>" + esc(p)
+function mdInline(s) {
+  return esc(s)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-    .replace(/\n/g, "<br>") + "</p>").join("");
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+// Paragraphs, inline code/bold/links, and "- " bullet lists (a paragraph may open with a lead-in line).
+function md(s) {
+  return String(s ?? "").trim().split(/\n{2,}/).map(p => {
+    const lines = p.split("\n"), first = lines.findIndex(l => /^\s*[-*] /.test(l));
+    if (first < 0 || lines.slice(first).some(l => !/^\s*[-*] /.test(l))) return "<p>" + mdInline(p).replace(/\n/g, "<br>") + "</p>";
+    const lead = first ? "<p>" + mdInline(lines.slice(0, first).join("\n")).replace(/\n/g, "<br>") + "</p>" : "";
+    return lead + "<ul>" + lines.slice(first).map(l => "<li>" + mdInline(l.replace(/^\s*[-*] /, "")) + "</li>").join("") + "</ul>";
+  }).join("");
 }
 const mdEl = (s, cls) => el("div", { class: cls, html: md(s) });
 const pad = n => String(n).padStart(2, "0");
@@ -250,6 +258,7 @@ function findingCard(f, withLoc) {
         onclick: e => { e.stopPropagation(); copyText(commentMarkdown(f), e.currentTarget, "Copy comment"); } }, "Copy comment")),
     f.detail ? mdEl(f.detail) : null,
     f.suggestion ? el("div", { class: "sg", html: "<strong>Suggestion</strong> " + md(f.suggestion) }) : null,
+    f.evidence ? el("div", { class: "small muted", style: "margin-top:6px", title: "Shown here only; not part of the PR comment", html: "<strong>Evidence</strong> " + md(f.evidence) }) : null,
     proposalBlock(f));
 }
 // The expected shape of the fix: a before/after diff when it replaces lines, else the code to add.
@@ -273,8 +282,9 @@ function proposalBlock(f) {
 }
 function fenceLang(f) { const p = f.proposal.path || f.path || ""; return LANG[p.split(".").pop().toLowerCase()] || ""; }
 function commentMarkdown(f) {
-  const parts = [`**${f.title}**`];
-  if (f.detail) parts.push(f.detail.trim());
+  // The posted comment: no title (the page's label) and no evidence (private to the reviewer).
+  const detail = (f.detail || "").trim();
+  const parts = [f.severity === "nit" && detail && !/^nit\b/i.test(detail) ? "Nit: " + detail : detail].filter(Boolean);
   if (f.suggestion) parts.push(f.suggestion.trim());
   if (f.proposal) {
     parts.push("```" + fenceLang(f) + "\n" + f.proposal.code.replace(/\n+$/, "") + "\n```");
@@ -444,6 +454,9 @@ function overview() {
     el("div", { class: "card stats" },
       ...[["Files", FILES.length], ["Steps", CH.length], ["Blockers", sevCount("blocker")], ["Majors", sevCount("major")]]
         .map(([l, n]) => el("div", { class: n && (l === "Blockers" || l === "Majors") ? (l === "Blockers" ? "c-bad" : "c-orange") : "" }, el("b", {}, n), el("span", { class: "small muted" }, l)))),
+    G.reviewBody ? el("div", { class: "card" }, el("div", { class: "row" }, el("h3", { class: "grow" }, "Review summary comment"),
+      el("button", { class: "btn copy", onclick: e => copyText(G.reviewBody.trim() + "\n", e.currentTarget, "Copy") }, "Copy")),
+      mdEl(G.reviewBody)) : null,
     G.risks && G.risks.length ? el("div", { class: "card" }, el("h3", {}, "Risks"), el("ul", { class: "list" }, G.risks.map(r => el("li", { html: md(r) })))) : null,
     G.verification && G.verification.length ? el("div", { class: "card" }, el("h3", {}, "Verification"),
       el("ul", { class: "list" }, G.verification.map(x => el("li", {},
@@ -631,6 +644,7 @@ function reviewNotes() {
   const lines = [`## Review: ${G.title}`, ""];
   if (v.recommendation) lines.push(`**Recommendation:** ${v.recommendation}` + (v.intentMet ? ` · **Intent met:** ${v.intentMet}` : ""), "");
   if (v.rationale) lines.push(v.rationale, "");
+  if (G.reviewBody) lines.push("### Summary comment", G.reviewBody.trim(), "");
   if (FINDINGS.length) {
     lines.push("### Findings");
     for (const f of [...FINDINGS].sort((a, b) => SEV.indexOf(a.severity) - SEV.indexOf(b.severity))) {

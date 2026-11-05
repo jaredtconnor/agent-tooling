@@ -1,6 +1,6 @@
 # guide.json schema
 
-Only `title`, `tldr` and `chapters` are required. Every other field renders when present. Text fields accept light Markdown: `code`, `**bold**`, `[text](https://…)`, and blank-line paragraphs.
+Only `title`, `tldr` and `chapters` are required. Every other field renders when present. Text fields accept light Markdown: `code`, `**bold**`, `[text](https://…)`, and blank-line paragraphs. Fields marked *posted* become PR comment text; write them per [comment-style.md](comment-style.md).
 
 ```jsonc
 {
@@ -31,6 +31,8 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
     "rationale": "Two or three sentences a reviewer can act on.",
     "qualitySignals": ["Mixes a refactor with a behavior change", "No regression test for the bug"]
   },
+
+  "reviewBody": "Suggestion that covers the three retry issues below: …",  // posted; post-level comment for a shared root cause
 
   "keyChanges": [{ "text": "Retry logic moves into one shared policy", "chapter": 0 }],
   "risks": ["Search requests now retry on 429; confirm the upstream rate limit tolerates it"],
@@ -64,9 +66,10 @@ Only `title`, `tldr` and `chapters` are required. Every other field renders when
       "path": "src/Rules.cs",
       "line": 172,                        // line number on `side`
       "side": "new",                      // new (default) | old, for deleted lines
-      "title": "Non-idempotent POST is retried",
-      "detail": "Evidence: what the code does and why it is wrong.",
-      "suggestion": "Concrete fix.",
+      "title": "Non-idempotent POST is retried",  // page only
+      "detail": "`Execute` retries every verb, so a POST that times out after the server committed → duplicate charge.",  // posted
+      "suggestion": "Suggest skipping the policy for non-idempotent requests.",  // posted
+      "evidence": "Read all three call sites; BillingClient.Charge is a POST.",  // page only, never posted
       "confidence": "verified",           // verified | inferred
       "proposal": {                       // optional: expected shape of the fix
         "code": "if (!request.IsIdempotent)\n    return await send(request);\nreturn await _policy.Execute(() => send(request));",
