@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR guide</title>
+<style>
+:root {
+  --bg:#0f1011; --panel:#151618; --panel2:#1c1d20; --border:#2a2b30; --fg:#e3e4e6; --muted:#8a8f98; --accent:#7c84f0;
+  --green:#4cb782; --red:#eb5757; --yellow:#f2c94c; --blue:#4ea7fc; --orange:#f2994a;
+  --add:rgba(76,183,130,.12); --add-n:rgba(76,183,130,.24); --del:rgba(235,87,87,.12); --del-n:rgba(235,87,87,.24);
+  --tk:#c4a7ff; --ts:#a8d4a0; --tc:#6f7681; --tn:#f5b97a; --tt:#7fc8ff; --ta:#e6c07b;
+  --mono:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace;
+  --sans:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:#fff; --panel:#f7f8f9; --panel2:#eef0f2; --border:#dfe1e5; --fg:#1b1c1f; --muted:#6b6f76; --accent:#5e6ad2;
+    --green:#2e9e63; --red:#d14343; --yellow:#b8860b; --blue:#1f6fd1; --orange:#c76a12;
+    --add:rgba(46,160,67,.11); --add-n:rgba(46,160,67,.22); --del:rgba(215,58,73,.09); --del-n:rgba(215,58,73,.2);
+    --tk:#7a3fc8; --ts:#2f7d32; --tc:#8b9098; --tn:#b4590b; --tt:#1d63b8; --ta:#8a6100;
+  }
+}
+* { box-sizing:border-box }
+html, body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 var(--sans) }
+a { color:var(--accent); text-decoration:none } a:hover { text-decoration:underline }
+p { margin:0 0 8px } p:last-child { margin-bottom:0 }
+code { font-family:var(--mono); font-size:12.5px; background:var(--panel2); padding:1px 5px; border-radius:4px }
+header { position:sticky; top:0; z-index:10; background:var(--bg); border-bottom:1px solid var(--border); padding:10px 24px 0 }
+.crumbs { display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:var(--muted); font-size:13px }
+.crumbs .title { color:var(--fg); font-weight:600 }
+.plus { color:var(--green) } .minus { color:var(--red) }
+.chip { display:inline-flex; align-items:center; gap:4px; padding:0 8px; border:1px solid var(--border); border-radius:999px; font-size:11.5px; color:var(--muted); background:var(--panel); white-space:nowrap }
+.bar { display:flex; align-items:end; gap:4px; margin-top:8px }
+.tab { background:none; border:0; color:var(--muted); padding:6px 12px 8px; cursor:pointer; font:inherit; border-bottom:2px solid transparent }
+.tab:hover { color:var(--fg) } .tab.on { color:var(--fg); border-bottom-color:var(--accent) }
+.tab .n { margin-left:5px; font-size:11px; color:var(--muted) }
+.tools { margin-left:auto; display:flex; gap:6px; padding-bottom:6px }
+.btn { background:var(--panel2); border:1px solid var(--border); color:var(--fg); border-radius:6px; padding:3px 10px; font:inherit; font-size:12.5px; cursor:pointer }
+.btn:hover { border-color:var(--accent) } .btn:disabled { opacity:.4; cursor:default }
+main { padding:20px 24px 80px; max-width:1800px }
+.view { display:none } .view.on { display:block }
+h1 { font-size:22px; margin:0 0 2px; font-weight:650 }
+h2 { font-size:17px; margin:0 0 6px; font-weight:600 }
+h3 { font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:20px 0 8px; font-weight:600 }
+h3:first-child { margin-top:0 }
+.meta { color:var(--muted); font-size:12.5px; font-family:var(--mono) }
+.muted { color:var(--muted) } .small { font-size:12.5px }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px 18px }
+.stack > * + * { margin-top:16px }
+.cols { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr); gap:16px; margin-top:16px; align-items:start }
+.tldr { font-size:17px; line-height:1.6 }
+.pill { display:inline-block; padding:0 8px; border-radius:999px; font-size:11.5px; font-weight:600; border:1px solid currentColor; white-space:nowrap; line-height:18px }
+.c-good { color:var(--green) } .c-warn { color:var(--yellow) } .c-bad { color:var(--red) } .c-info { color:var(--blue) } .c-mute { color:var(--muted) } .c-orange { color:var(--orange) }
+.list { list-style:none; padding:0; margin:0 }
+.list > li { padding:8px 0; border-top:1px solid var(--border) } .list > li:first-child { border-top:0; padding-top:0 }
+.row { display:flex; gap:8px; align-items:baseline }
+.grow { flex:1; min-width:0 }
+.click { cursor:pointer } .click:hover .lbl { color:var(--accent) }
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center }
+.stats b { display:block; font-size:20px }
+.verdict-head { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px }
+
+/* guide */
+.guide { display:grid; grid-template-columns:minmax(300px,380px) minmax(0,1fr); gap:24px; align-items:start }
+.side { position:sticky; top:96px; max-height:calc(100vh - 112px); overflow:auto; padding-right:4px }
+.counter { font-family:var(--mono); font-size:12.5px; color:var(--muted); display:flex; gap:12px; align-items:center; margin:2px 0 12px }
+.counter b { color:var(--fg) }
+.summary { font-size:14.5px; line-height:1.6 }
+.flist li { display:flex; gap:8px; font-size:12.5px; padding:3px 0; cursor:pointer; align-items:baseline }
+.flist .nm { font-weight:500 } .flist .dir { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0 }
+.flist li:hover .nm { color:var(--accent) }
+.toc li { display:flex; gap:8px; padding:3px 0; font-size:13px; cursor:pointer; color:var(--muted) }
+.toc li.on { color:var(--fg); font-weight:600 } .toc li:hover { color:var(--accent) }
+.toc .ck { width:14px; color:var(--green) }
+.nav { display:flex; gap:8px; margin-top:16px }
+
+/* diff */
+.file { border:1px solid var(--border); border-radius:8px; margin-bottom:18px; background:var(--panel); overflow:clip }
+.fhead { display:flex; gap:10px; align-items:center; padding:7px 12px; border-bottom:1px solid var(--border); font-size:12.5px; position:sticky; top:84px; z-index:2; background:var(--panel) }
+.fhead .nm { font-weight:600 } .fhead .dir { color:var(--muted) }
+.fhead label { margin-left:auto; display:flex; gap:5px; align-items:center; color:var(--muted); cursor:pointer }
+.file.done .body { display:none }
+.empty { padding:12px; color:var(--muted); font-size:12.5px }
+table.diff { width:100%; border-collapse:collapse; font:12px/1.6 var(--mono); table-layout:fixed }
+.diff td { padding:0 10px; white-space:pre-wrap; overflow-wrap:anywhere; vertical-align:top }
+.diff td.ln { width:54px; text-align:right; color:var(--muted); user-select:none; padding:0 8px; opacity:.75 }
+.diff tr.gap td { background:var(--panel2); color:var(--muted); padding:3px 12px; font-size:11.5px }
+.diff td.a { background:var(--add) } .diff td.ln.a { background:var(--add-n); opacity:1 }
+.diff td.d { background:var(--del) } .diff td.ln.d { background:var(--del-n); opacity:1 }
+.diff td.e { background:var(--panel2) }
+.diff tr.fnd td { padding:0; white-space:normal }
+.finding { margin:8px 12px; border:1px solid var(--border); border-left:3px solid var(--yellow); background:var(--bg); border-radius:6px; padding:10px 12px; font:13.5px/1.5 var(--sans) }
+.finding .hd { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:4px }
+.finding .sg { margin-top:6px; padding-top:6px; border-top:1px dashed var(--border) }
+.sev-blocker { border-left-color:var(--red) } .sev-major { border-left-color:var(--orange) } .sev-minor { border-left-color:var(--yellow) } .sev-nit { border-left-color:var(--muted) }
+.flash { animation:flash 1.8s ease-out }
+@keyframes flash { from { box-shadow:0 0 0 3px var(--accent) } to { box-shadow:0 0 0 3px transparent } }
+.hljs-keyword,.hljs-literal,.hljs-meta .hljs-keyword,.hljs-selector-tag { color:var(--tk) }
+.hljs-string,.hljs-regexp,.hljs-char { color:var(--ts) }
+.hljs-comment,.hljs-quote,.hljs-doctag { color:var(--tc); font-style:italic }
+.hljs-number,.hljs-symbol,.hljs-bullet { color:var(--tn) }
+.hljs-title,.hljs-type,.hljs-built_in,.hljs-class .hljs-title,.hljs-title.class_,.hljs-title.function_ { color:var(--tt) }
+.hljs-attr,.hljs-attribute,.hljs-variable,.hljs-params,.hljs-meta,.hljs-tag,.hljs-name { color:var(--ta) }
+
+/* findings, canvas, structure, files */
+.filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px }
+.filters .btn.on { border-color:var(--accent); color:var(--accent) }
+.findings .finding { margin:0 0 10px; cursor:pointer } .findings .finding:hover { border-color:var(--accent) }
+.loc { font-family:var(--mono); font-size:12px; color:var(--muted) }
+.gauge { display:flex; height:10px; border-radius:999px; overflow:hidden; background:var(--panel2); margin:8px 0 6px }
+.gauge span { display:block; height:100% }
+.cat { margin-top:14px }
+.item { display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 14px; padding:10px 0; border-top:1px solid var(--border) }
+.seg { display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; height:24px }
+.seg button { background:none; border:0; border-left:1px solid var(--border); color:var(--muted); font:12px var(--sans); padding:0 8px; cursor:pointer }
+.seg button:first-child { border-left:0 }
+.seg button.on[data-s=pass] { background:var(--add-n); color:var(--green) }
+.seg button.on[data-s=concern] { background:rgba(242,201,76,.18); color:var(--yellow) }
+.seg button.on[data-s=fail] { background:var(--del-n); color:var(--red) }
+.seg button.on[data-s=na], .seg button.on[data-s=unchecked] { background:var(--panel2); color:var(--fg) }
+.why { color:var(--muted); font-size:12px }
+table.grid { width:100%; border-collapse:collapse; font-size:13px }
+table.grid td, table.grid th { text-align:left; padding:7px 10px; border-top:1px solid var(--border); vertical-align:top }
+table.grid th { color:var(--muted); font-weight:500; font-size:12px; border-top:0 }
+.diagram { overflow:auto; text-align:center; padding:8px 0 }
+.diagram svg { max-width:100% }
+pre.src { text-align:left; font:12px/1.5 var(--mono); background:var(--panel2); padding:10px; border-radius:6px; overflow:auto; white-space:pre-wrap }
+.files-layout { display:grid; grid-template-columns:minmax(260px,320px) minmax(0,1fr); gap:24px; align-items:start }
+.st { font-family:var(--mono); font-size:11.5px; width:12px; font-weight:700 }
+.st-added { color:var(--green) } .st-deleted { color:var(--red) } .st-renamed { color:var(--blue) } .st-modified { color:var(--yellow) }
+kbd { font:11px var(--mono); border:1px solid var(--border); border-bottom-width:2px; border-radius:4px; padding:0 4px; color:var(--muted) }
+footer { color:var(--muted); font-size:12px; margin-top:28px }
+@media (max-width:1100px) { .cols, .guide, .files-layout { grid-template-columns:1fr } .side { position:static; max-height:none } }
+</style>
+</head>
+<body>
+<header>
+  <div class="crumbs" id="crumbs"></div>
+  <div class="bar">
+    <nav id="tabs"></nav>
+    <div class="tools">
+      <button class="btn" id="mode" title="Toggle split / unified diff"></button>
+      <button class="btn" id="copy" title="Copy verdict, findings and canvas concerns as Markdown">Copy review notes</button>
+    </div>
+  </div>
+</header>
+<main>
+  <section class="view" id="v-overview"></section>
+  <section class="view" id="v-guide"></section>
+  <section class="view" id="v-structure"></section>
+  <section class="view" id="v-findings"></section>
+  <section class="view" id="v-canvas"></section>
+  <section class="view" id="v-files"></section>
+</main>
+<script type="application/json" id="pr-data">__PR_GUIDE_DATA__</script>
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("pr-data").textContent);
+const G = DATA.guide, FILES = DATA.files, CANVAS = DATA.canvas;
+const CH = G.chapters, FINDINGS = G.findings || [];
+const byPath = new Map(FILES.map(f => [f.path, f]));
+const KEY = "grok-pr:" + G.id;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(KEY + ":" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(KEY + ":" + k, JSON.stringify(v)); } catch {} },
+};
+let mode = store.get("mode", "split");
+let cur = 0;
+const mermaidReady = new Promise(resolve => {
+  window.__mermaid = resolve;
+  setTimeout(() => resolve(null), 8000);
+});
+
+// ---------- helpers ----------
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)) {
+    if (c == null || c === false) continue;
+    e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return e;
+}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function md(s) {
+  return String(s ?? "").trim().split(/\n{2,}/).map(p => "<p>" + esc(p)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\n/g, "<br>") + "</p>").join("");
+}
+const mdEl = (s, cls) => el("div", { class: cls, html: md(s) });
+const pad = n => String(n).padStart(2, "0");
+const split = p => { const i = p.lastIndexOf("/"); return [p.slice(i + 1), i < 0 ? "" : p.slice(0, i + 1)]; };
+const delta = (a, d) => [a ? el("span", { class: "plus" }, "+" + a) : null, d ? el("span", { class: "minus" }, " -" + d) : null];
+function flash(node) { if (!node) return; node.scrollIntoView({ block: "center", behavior: "smooth" }); node.classList.remove("flash"); void node.offsetWidth; node.classList.add("flash"); }
+
+const TONE = {
+  approve: "c-good", "approve-with-nits": "c-good", "request-changes": "c-orange", rethink: "c-bad",
+  yes: "c-good", partial: "c-warn", no: "c-bad", unclear: "c-mute",
+  good: "c-good", ok: "c-warn", poor: "c-bad",
+  met: "c-good", missing: "c-bad",
+  blocker: "c-bad", major: "c-orange", minor: "c-warn", nit: "c-mute",
+  pass: "c-good", concern: "c-warn", fail: "c-bad", na: "c-mute", unchecked: "c-mute",
+  verified: "c-good", inferred: "c-mute", "not-run": "c-mute",
+  added: "c-good", removed: "c-bad", changed: "c-warn", moved: "c-info", renamed: "c-info",
+};
+const pill = (v, label) => v ? el("span", { class: "pill " + (TONE[v] || "c-mute") }, label || v) : null;
+const SEV = ["blocker", "major", "minor", "nit"];
+
+// ---------- diff rendering ----------
+const LANG = { cs: "csharp", ts: "typescript", tsx: "typescript", js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
+  py: "python", sql: "sql", json: "json", xml: "xml", csproj: "xml", props: "xml", targets: "xml", xaml: "xml", config: "xml", resx: "xml",
+  html: "xml", htm: "xml", cshtml: "xml", razor: "xml", svg: "xml", yml: "yaml", yaml: "yaml", md: "markdown", sh: "bash", bash: "bash",
+  ps1: "powershell", psm1: "powershell", go: "go", rs: "rust", java: "java", kt: "kotlin", css: "css", scss: "scss", vb: "vbnet",
+  cpp: "cpp", cc: "cpp", hpp: "cpp", c: "c", h: "c", rb: "ruby", php: "php", swift: "swift", toml: "ini", ini: "ini", lua: "lua" };
+function langFor(path) {
+  const l = LANG[path.split(".").pop().toLowerCase()];
+  return window.hljs && l && hljs.getLanguage(l) ? l : null;
+}
+function hl(text, lang) {
+  if (!lang || text.length > 800) return esc(text);
+  try { return hljs.highlight(text, { language: lang, ignoreIllegals: true }).value; } catch { return esc(text); }
+}
+function findingCard(f, withLoc) {
+  return el("div", { class: "finding sev-" + f.severity, id: withLoc ? null : "f-" + f.id, "data-fid": f.id },
+    el("div", { class: "hd" }, pill(f.severity), el("span", { class: "chip" }, f.category),
+      f.confidence === "inferred" ? el("span", { class: "chip", title: "Not verified by running code or reading every caller" }, "inferred") : null,
+      el("strong", {}, f.title),
+      withLoc && f.path ? el("span", { class: "loc grow", style: "text-align:right" }, f.path + (f.line ? ":" + f.line : "")) : null),
+    f.detail ? mdEl(f.detail) : null,
+    f.suggestion ? el("div", { class: "sg", html: "<strong>Suggestion</strong> " + md(f.suggestion) }) : null);
+}
+function reviewedFiles() { return store.get("files", {}); }
+function renderFile(file, hunkIds) {
+  const [name, dir] = split(file.path);
+  const hunks = hunkIds ? file.hunks.filter(h => hunkIds.includes(h.id)) : file.hunks;
+  const add = hunks.reduce((s, h) => s + h.add, 0), del = hunks.reduce((s, h) => s + h.del, 0);
+  const box = el("section", { class: "file", "data-path": file.path });
+  const cb = el("input", { type: "checkbox", checked: !!reviewedFiles()[file.path] });
+  cb.addEventListener("change", () => { const r = reviewedFiles(); r[file.path] = cb.checked; store.set("files", r); syncFileState(); });
+  box.append(el("div", { class: "fhead" },
+    el("span", { class: "st st-" + file.status, title: file.status }, file.status[0].toUpperCase()),
+    el("span", { class: "nm" }, name), el("span", { class: "dir" }, file.status === "renamed" && file.oldPath !== file.path ? "← " + file.oldPath : dir),
+    el("span", {}, delta(add, del)), el("label", {}, cb, "Reviewed")));
+  if (file.binary || !hunks.length) {
+    box.append(el("div", { class: "body empty" }, file.binary ? "Binary file changed." : "No textual changes (rename or mode change)."));
+    return box;
+  }
+  const lang = langFor(file.path);
+  const fs = FINDINGS.filter(f => f.path === file.path && Number.isInteger(f.line));
+  const placed = new Set();
+  // Added and deleted files have one side only; split view would leave half the table empty.
+  const fileMode = file.status === "added" || file.status === "deleted" ? "unified" : mode;
+  const cols = fileMode === "split" ? 4 : 3;
+  const table = el("table", { class: "diff" },
+    el("colgroup", {}, fileMode === "split"
+      ? [el("col", { style: "width:54px" }), el("col"), el("col", { style: "width:54px" }), el("col")]
+      : [el("col", { style: "width:54px" }), el("col", { style: "width:54px" }), el("col")]));
+  const tb = el("tbody");
+  table.append(tb);
+  const addFindings = (oldNo, newNo) => {
+    for (const f of fs) {
+      if (placed.has(f.id)) continue;
+      if ((f.side === "old" ? oldNo : newNo) === f.line) {
+        placed.add(f.id);
+        tb.append(el("tr", { class: "fnd" }, el("td", { colspan: cols }, findingCard(f))));
+      }
+    }
+  };
+  const txt = (l, sign) => el("td", { class: sign === "+" ? "a" : sign === "-" ? "d" : "", html: hl(l[3], lang) || " " });
+  let prevIdx = -1, prevOldEnd = 0;
+  for (const h of hunks) {
+    const idx = file.hunks.indexOf(h);
+    const skipped = idx - prevIdx - 1;
+    const hidden = h.oldStart - prevOldEnd - 1;
+    if (skipped > 0 || hidden > 0) {
+      const label = skipped > 0 ? `⋯ ${skipped} hunk${skipped > 1 ? "s" : ""} shown in other steps` : `⋯ ${hidden} unchanged line${hidden > 1 ? "s" : ""}`;
+      tb.append(el("tr", { class: "gap" }, el("td", { colspan: cols }, label, h.ctx ? "   " + h.ctx : "")));
+    } else if (h.ctx && idx === 0 && h.oldStart > 1) {
+      tb.append(el("tr", { class: "gap" }, el("td", { colspan: cols }, h.ctx)));
+    }
+    prevIdx = idx; prevOldEnd = h.oldStart + h.oldLines - 1;
+    const L = h.lines;
+    if (fileMode === "unified") {
+      for (const l of L) {
+        const c = l[0] === "+" ? "a" : l[0] === "-" ? "d" : "";
+        tb.append(el("tr", {}, el("td", { class: "ln " + c }, l[1] ?? ""), el("td", { class: "ln " + c }, l[2] ?? ""), txt(l, l[0])));
+        addFindings(l[1], l[2]);
+      }
+      continue;
+    }
+    for (let i = 0; i < L.length;) {
+      if (L[i][0] === " ") {
+        const l = L[i++];
+        tb.append(el("tr", {}, el("td", { class: "ln" }, l[1]), txt(l, " "), el("td", { class: "ln" }, l[2]), txt(l, " ")));
+        addFindings(l[1], l[2]);
+        continue;
+      }
+      const dels = [], adds = [];
+      while (i < L.length && L[i][0] === "-") dels.push(L[i++]);
+      while (i < L.length && L[i][0] === "+") adds.push(L[i++]);
+      for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
+        const d = dels[k], a = adds[k];
+        tb.append(el("tr", {},
+          d ? el("td", { class: "ln d" }, d[1]) : el("td", { class: "ln e" }), d ? txt(d, "-") : el("td", { class: "e" }),
+          a ? el("td", { class: "ln a" }, a[2]) : el("td", { class: "ln e" }), a ? txt(a, "+") : el("td", { class: "e" })));
+        addFindings(d ? d[1] : null, a ? a[2] : null);
+      }
+    }
+  }
+  box.append(el("div", { class: "body" }, table));
+  return box;
+}
+function syncFileState() {
+  const r = reviewedFiles();
+  document.querySelectorAll(".file").forEach(b => {
+    const on = !!r[b.dataset.path];
+    b.classList.toggle("done", on);
+    const cb = b.querySelector(".fhead input"); if (cb) cb.checked = on;
+  });
+  document.querySelectorAll("[data-ck-path]").forEach(n => { n.textContent = r[n.dataset.ckPath] ? "✓" : ""; });
+}
+
+// ---------- canvas state ----------
+function canvasState() {
+  const over = store.get("canvas", {}), out = {};
+  for (const c of CANVAS.categories) for (const it of c.items) {
+    const g = (G.canvas || {})[it.id] || {};
+    out[it.id] = { status: over[it.id] || g.status || "unchecked", note: g.note || "", agent: g.status || "unchecked" };
+  }
+  return out;
+}
+function canvasScore() {
+  const s = Object.values(canvasState());
+  const count = k => s.filter(x => x.status === k).length;
+  const applicable = s.length - count("na");
+  return { pass: count("pass"), concern: count("concern"), fail: count("fail"), unchecked: count("unchecked"), applicable,
+    pct: applicable ? Math.round(100 * count("pass") / applicable) : 0 };
+}
+
+// ---------- views ----------
+const TABS = [
+  ["overview", "Overview"], ["guide", "Guide", () => CH.length], ["structure", "Structure"],
+  ["findings", "Findings", () => FINDINGS.length], ["canvas", "Canvas", () => canvasScore().pct + "%"], ["files", "Files", () => FILES.length],
+];
+let tab = "overview";
+const rendered = {};
+
+function header() {
+  const add = FILES.reduce((s, f) => s + f.add, 0), del = FILES.reduce((s, f) => s + f.del, 0);
+  document.title = G.title + " · PR guide";
+  const issues = (G.issues || []).map(i => el(i.url ? "a" : "span", { class: "chip", href: i.url, target: "_blank", title: i.title || "" }, i.key));
+  document.getElementById("crumbs").replaceChildren(...issues, issues.length ? "›" : null,
+    el("span", { class: "title" }, G.title), el("span", {}, delta(add, del)),
+    G.url ? el("a", { href: G.url, target: "_blank", class: "meta" }, G.url.replace(/^https?:\/\/(www\.)?/, "")) : null);
+  document.getElementById("tabs").replaceChildren(...TABS.map(([id, label, n], i) =>
+    el("button", { class: "tab" + (tab === id ? " on" : ""), title: `${label} (${i + 1})`, onclick: () => go(id) }, label, n ? el("span", { class: "n" }, n()) : null)));
+  document.getElementById("mode").textContent = mode === "split" ? "Split" : "Unified";
+}
+
+function titleBlock() {
+  return el("div", {}, el("h1", {}, G.title),
+    el("div", { class: "meta" }, [G.author, [G.base, G.head].filter(Boolean).join(" ← ")].filter(Boolean).join("  ·  ")));
+}
+
+function overview() {
+  const v = G.verdict || {}, intent = G.intent || {};
+  const sevCount = s => FINDINGS.filter(f => f.severity === s).length;
+  const left = el("div", { class: "stack" },
+    el("div", { class: "card" }, el("h3", {}, "TL;DR"), mdEl(G.tldr, "tldr")),
+    intent.statement ? el("div", { class: "card" },
+      el("h3", {}, "What it is trying to do ", intent.source ? el("span", { class: "chip" }, "from " + intent.source) : null),
+      mdEl(intent.statement),
+      intent.criteria && intent.criteria.length ? el("table", { class: "grid", style: "margin-top:10px" },
+        el("tr", {}, el("th", {}, "Criterion"), el("th", {}, "Status"), el("th", {}, "Evidence")),
+        intent.criteria.map(c => el("tr", {}, el("td", { html: md(c.text) }), el("td", {}, pill(c.status)), el("td", { class: "small", html: md(c.evidence) })))) : null) : null,
+    G.keyChanges && G.keyChanges.length ? el("div", { class: "card" }, el("h3", {}, "Salient changes"),
+      el("ul", { class: "list" }, G.keyChanges.map(k => el("li", { class: Number.isInteger(k.chapter) ? "click row" : "row",
+        onclick: Number.isInteger(k.chapter) ? () => go("guide", k.chapter) : null },
+        el("span", { class: "lbl grow", html: md(k.text) }),
+        Number.isInteger(k.chapter) && CH[k.chapter] ? el("span", { class: "chip" }, "step " + (k.chapter + 1)) : null)))) : null,
+    el("div", { class: "card" }, el("h3", {}, "Steps"),
+      el("ul", { class: "list" }, CH.map((c, i) => el("li", { class: "click row", onclick: () => go("guide", i) },
+        el("span", { class: "meta" }, pad(i + 1)), el("span", { class: "lbl grow" }, c.title),
+        el("span", { class: "small" }, delta(...chapterDelta(c))))))));
+  const right = el("div", { class: "stack" },
+    el("div", { class: "card" }, el("h3", {}, "Verdict"),
+      el("div", { class: "verdict-head" }, pill(v.recommendation), v.intentMet ? pill(v.intentMet, "intent met: " + v.intentMet) : null,
+        v.prQuality ? pill(v.prQuality, "PR quality: " + v.prQuality) : null),
+      v.rationale ? mdEl(v.rationale) : el("p", { class: "muted" }, "No verdict recorded."),
+      v.qualitySignals && v.qualitySignals.length ? el("ul", { class: "small", style: "margin:10px 0 0;padding-left:18px" }, v.qualitySignals.map(s => el("li", { html: md(s) }))) : null),
+    el("div", { class: "card stats" },
+      ...[["Files", FILES.length], ["Steps", CH.length], ["Blockers", sevCount("blocker")], ["Majors", sevCount("major")]]
+        .map(([l, n]) => el("div", { class: n && (l === "Blockers" || l === "Majors") ? (l === "Blockers" ? "c-bad" : "c-orange") : "" }, el("b", {}, n), el("span", { class: "small muted" }, l)))),
+    G.risks && G.risks.length ? el("div", { class: "card" }, el("h3", {}, "Risks"), el("ul", { class: "list" }, G.risks.map(r => el("li", { html: md(r) })))) : null,
+    G.verification && G.verification.length ? el("div", { class: "card" }, el("h3", {}, "Verification"),
+      el("ul", { class: "list" }, G.verification.map(x => el("li", {},
+        el("div", { class: "row" }, pill(x.result === "pass" ? "pass" : x.result === "fail" ? "fail" : "not-run", x.result || "not-run"), el("code", { class: "grow" }, x.command)),
+        x.note ? mdEl(x.note, "small muted") : null)))) : null);
+  return [titleBlock(), el("div", { class: "cols" }, left, right),
+    el("footer", {}, "Generated " + DATA.generated + " · keys: ", el("kbd", {}, "1"), "–", el("kbd", {}, "6"), " tabs, ",
+      el("kbd", {}, "j"), "/", el("kbd", {}, "k"), " next/prev step, ", el("kbd", {}, "r"), " mark step reviewed")];
+}
+
+function chapterDelta(c) {
+  let a = 0, d = 0;
+  for (const r of c.refs) { const f = byPath.get(r.path); if (!f) continue; for (const h of f.hunks) if (r.hunks.includes(h.id)) { a += h.add; d += h.del; } }
+  return [a, d];
+}
+function chaptersDone() { return store.get("chapters", {}); }
+
+function guide() {
+  if (!CH.length) return [el("p", { class: "muted" }, "No steps.")];
+  const c = CH[cur], done = chaptersDone();
+  const cb = el("input", { type: "checkbox", checked: !!done[cur] });
+  cb.addEventListener("change", () => { const d = chaptersDone(); d[cur] = cb.checked; store.set("chapters", d); render("guide"); });
+  const chFindings = FINDINGS.filter(f => f.chapter === cur);
+  const side = el("aside", { class: "side" },
+    el("h2", {}, c.title),
+    el("div", { class: "counter" }, el("span", {}, el("b", {}, pad(cur + 1)), " / " + pad(CH.length)),
+      el("label", { class: "row", style: "cursor:pointer" }, cb, "Reviewed"), c.auto ? el("span", { class: "chip" }, "not narrated") : null),
+    mdEl(c.summary, "summary"),
+    el("h3", {}, "Files"),
+    el("ul", { class: "list flist" }, c.refs.map(r => {
+      const f = byPath.get(r.path), [name, dir] = split(r.path);
+      const hs = f ? f.hunks.filter(h => r.hunks.includes(h.id)) : [];
+      return el("li", { onclick: () => flash(document.querySelector(`#v-guide .file[data-path="${CSS.escape(r.path)}"]`)) },
+        el("span", { class: "st st-" + (f ? f.status : "modified") }, f ? f.status[0].toUpperCase() : "?"),
+        el("span", { class: "nm" }, name), el("span", { class: "dir" }, dir),
+        el("span", {}, delta(hs.reduce((s, h) => s + h.add, 0), hs.reduce((s, h) => s + h.del, 0))));
+    })),
+    chFindings.length ? el("h3", {}, "Findings in this step") : null,
+    chFindings.length ? el("ul", { class: "list" }, chFindings.map(f => el("li", { class: "click row", onclick: () => jumpFinding(f) },
+      pill(f.severity), el("span", { class: "lbl grow" }, f.title), el("span", { class: "loc" }, f.line ? ":" + f.line : "")))) : null,
+    el("div", { class: "nav" },
+      el("button", { class: "btn", disabled: cur === 0, onclick: () => go("guide", cur - 1) }, "← Prev"),
+      el("button", { class: "btn", disabled: cur === CH.length - 1, onclick: () => go("guide", cur + 1) }, "Next →")),
+    el("h3", {}, "All steps"),
+    el("ul", { class: "list toc" }, CH.map((x, i) => el("li", { class: i === cur ? "on" : "", onclick: () => go("guide", i) },
+      el("span", { class: "ck" }, done[i] ? "✓" : ""), el("span", { class: "meta" }, pad(i + 1)), el("span", { class: "grow" }, x.title)))));
+  const body = el("div", {}, c.refs.map(r => byPath.has(r.path) ? renderFile(byPath.get(r.path), r.hunks) : null));
+  return [el("div", { class: "guide" }, side, body)];
+}
+
+function structure() {
+  const s = G.structure || {};
+  const out = [];
+  if (s.changes && s.changes.length) {
+    out.push(el("div", { class: "card" }, el("h3", {}, "Structural changes"),
+      el("table", { class: "grid" }, el("tr", {}, el("th", {}, "Kind"), el("th", {}, "Symbol"), el("th", {}, "Where"), el("th", {}, "Why it matters")),
+        s.changes.map(c => el("tr", {}, el("td", {}, pill(c.kind)), el("td", {}, el("code", {}, c.symbol)), el("td", { class: "loc" }, c.path || ""), el("td", { html: md(c.note) }))))));
+  }
+  for (const d of s.diagrams || []) {
+    const holder = el("div", { class: "diagram" }, el("span", { class: "muted small" }, "Rendering diagram…"));
+    out.push(el("div", { class: "card" }, el("h3", {}, d.title || "Diagram"), holder, d.caption ? mdEl(d.caption, "small muted") : null));
+    drawMermaid(holder, d.mermaid);
+  }
+  if (!out.length) out.push(el("p", { class: "muted" }, "The guide records no structural changes."));
+  return [el("div", { class: "stack" }, out)];
+}
+let mermaidSeq = 0;
+async function drawMermaid(holder, src) {
+  const m = await mermaidReady;
+  if (!m) { holder.replaceChildren(el("p", { class: "small muted" }, "Mermaid did not load (offline?). Source:"), el("pre", { class: "src" }, src)); return; }
+  try {
+    const { svg } = await m.render("mmd" + (++mermaidSeq), src);
+    holder.innerHTML = svg;
+  } catch (e) {
+    holder.replaceChildren(el("p", { class: "small c-bad" }, "Diagram error: " + (e && e.message || e)), el("pre", { class: "src" }, src));
+  }
+}
+
+let fSev = new Set(), fCat = new Set();
+function findingsView() {
+  const cats = [...new Set(FINDINGS.map(f => f.category))];
+  const toggle = (set, v) => { set.has(v) ? set.delete(v) : set.add(v); render("findings"); };
+  const shown = FINDINGS.filter(f => (!fSev.size || fSev.has(f.severity)) && (!fCat.size || fCat.has(f.category)))
+    .sort((a, b) => SEV.indexOf(a.severity) - SEV.indexOf(b.severity));
+  return [
+    el("div", { class: "filters" },
+      SEV.map(s => el("button", { class: "btn" + (fSev.has(s) ? " on" : ""), onclick: () => toggle(fSev, s) }, s, " ", el("span", { class: "muted" }, FINDINGS.filter(f => f.severity === s).length))),
+      el("span", { style: "width:12px" }),
+      cats.map(c => el("button", { class: "btn" + (fCat.has(c) ? " on" : ""), onclick: () => toggle(fCat, c) }, c))),
+    shown.length ? el("div", { class: "findings" }, shown.map(f => { const card = findingCard(f, true); card.addEventListener("click", () => jumpFinding(f)); return card; }))
+      : el("p", { class: "muted" }, FINDINGS.length ? "No findings match the filter." : "No findings recorded."),
+  ];
+}
+function jumpFinding(f) {
+  if (f.chapter == null) { go("files"); flash(document.querySelector(`#v-files .file[data-path="${CSS.escape(f.path || "")}"]`)); return; }
+  go("guide", f.chapter);
+  requestAnimationFrame(() => flash(document.getElementById("f-" + f.id) || document.querySelector(`#v-guide .file[data-path="${CSS.escape(f.path)}"]`)));
+}
+
+function canvasView() {
+  const st = canvasState(), sc = canvasScore();
+  const set = (id, s) => { const o = store.get("canvas", {}); if (s === (G.canvas || {})[id]?.status) delete o[id]; else o[id] = s; store.set("canvas", o); render("canvas"); header(); };
+  const seg = (id, curS) => el("div", { class: "seg" }, ["pass", "concern", "fail", "na", "unchecked"].map(s =>
+    el("button", { "data-s": s, class: curS === s ? "on" : "", onclick: () => set(id, s), title: s }, { pass: "✓ pass", concern: "! concern", fail: "✗ fail", na: "n/a", unchecked: "?" }[s])));
+  const w = n => sc.applicable ? (100 * n / sc.applicable) + "%" : "0";
+  return [el("div", { class: "card" },
+    el("div", { class: "row" }, el("h2", { class: "grow" }, "Review readiness ", el("span", { class: "muted" }, sc.pct + "%")),
+      el("span", { class: "small muted" }, `${sc.pass} pass · ${sc.concern} concern · ${sc.fail} fail · ${sc.unchecked} unchecked`)),
+    el("div", { class: "gauge" }, el("span", { style: `width:${w(sc.pass)};background:var(--green)` }),
+      el("span", { style: `width:${w(sc.concern)};background:var(--yellow)` }), el("span", { style: `width:${w(sc.fail)};background:var(--red)` })),
+    el("p", { class: "small muted" }, "Statuses come from the agent's review; click to override. Overrides stay in this browser."),
+    CANVAS.categories.map(c => el("div", { class: "cat" }, el("h3", {}, c.label),
+      c.items.map(it => el("div", { class: "item" }, seg(it.id, st[it.id].status),
+        el("div", {}, el("div", {}, it.label, st[it.id].status !== st[it.id].agent ? el("span", { class: "chip", style: "margin-left:6px" }, "agent: " + st[it.id].agent) : null),
+          st[it.id].note ? mdEl(st[it.id].note, "small") : null, el("div", { class: "why" }, it.why)))))))];
+}
+
+function filesView() {
+  const r = reviewedFiles();
+  const list = el("aside", { class: "side" }, el("h3", {}, "Changed files"),
+    el("ul", { class: "list flist" }, FILES.map(f => {
+      const [name, dir] = split(f.path);
+      return el("li", { onclick: () => flash(document.querySelector(`#v-files .file[data-path="${CSS.escape(f.path)}"]`)) },
+        el("span", { class: "ck", style: "width:12px;color:var(--green)", "data-ck-path": f.path }, r[f.path] ? "✓" : ""),
+        el("span", { class: "st st-" + f.status }, f.status[0].toUpperCase()), el("span", { class: "nm" }, name), el("span", { class: "dir" }, dir), el("span", {}, delta(f.add, f.del)));
+    })));
+  return [el("div", { class: "files-layout" }, list, el("div", {}, FILES.map(f => renderFile(f, null))))];
+}
+
+const VIEWS = { overview, guide, structure, findings: findingsView, canvas: canvasView, files: filesView };
+function render(id) {
+  document.getElementById("v-" + id).replaceChildren(...VIEWS[id]().filter(Boolean));
+  rendered[id] = true;
+  syncFileState();
+}
+function go(id, chapter) {
+  const prevCur = cur;
+  if (Number.isInteger(chapter)) cur = Math.max(0, Math.min(CH.length - 1, chapter));
+  const hash = "#" + id + (id === "guide" ? "/" + (cur + 1) : "");
+  if (location.hash !== hash) history.replaceState(null, "", hash);
+  const changed = tab !== id || (id === "guide" && prevCur !== cur);
+  tab = id;
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id === "v-" + id));
+  if (!rendered[id] || (id === "guide" && changed)) render(id);
+  if (id === "guide" && prevCur !== cur) window.scrollTo({ top: 0 });
+  header();
+}
+function route() {
+  const [id, n] = location.hash.slice(1).split("/");
+  go(VIEWS[id] ? id : "overview", n ? parseInt(n, 10) - 1 : undefined);
+}
+
+function reviewNotes() {
+  const v = G.verdict || {}, st = canvasState();
+  const lines = [`## Review: ${G.title}`, ""];
+  if (v.recommendation) lines.push(`**Recommendation:** ${v.recommendation}` + (v.intentMet ? ` · **Intent met:** ${v.intentMet}` : ""), "");
+  if (v.rationale) lines.push(v.rationale, "");
+  if (FINDINGS.length) {
+    lines.push("### Findings");
+    for (const f of [...FINDINGS].sort((a, b) => SEV.indexOf(a.severity) - SEV.indexOf(b.severity))) {
+      lines.push(`- **${f.severity} · ${f.category}** ${f.path ? "`" + f.path + (f.line ? ":" + f.line : "") + "` " : ""}${f.title}` +
+        (f.detail ? `. ${f.detail.replace(/\s+/g, " ")}` : "") + (f.suggestion ? ` Suggestion: ${f.suggestion.replace(/\s+/g, " ")}` : ""));
+    }
+    lines.push("");
+  }
+  const concerns = CANVAS.categories.flatMap(c => c.items).filter(it => ["concern", "fail"].includes(st[it.id].status));
+  if (concerns.length) {
+    lines.push("### Checklist concerns");
+    for (const it of concerns) lines.push(`- ${it.label}: ${st[it.id].status}` + (st[it.id].note ? ` (${st[it.id].note.replace(/\s+/g, " ")})` : ""));
+  }
+  return lines.join("\n").trim() + "\n";
+}
+async function copyNotes() {
+  const text = reviewNotes(), btn = document.getElementById("copy");
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = el("textarea", { style: "position:fixed;opacity:0" }); ta.value = text; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove();
+  }
+  btn.textContent = "Copied"; setTimeout(() => { btn.textContent = "Copy review notes"; }, 1500);
+}
+
+document.getElementById("mode").addEventListener("click", () => {
+  mode = mode === "split" ? "unified" : "split"; store.set("mode", mode);
+  rendered.guide = rendered.files = false;
+  if (tab === "guide" || tab === "files") render(tab);
+  header();
+});
+document.getElementById("copy").addEventListener("click", copyNotes);
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /input|textarea|select/i.test(e.target.tagName)) return;
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= TABS.length) return go(TABS[n - 1][0]);
+  if (tab !== "guide") return;
+  if (e.key === "j" || e.key === "ArrowRight") go("guide", cur + 1);
+  else if (e.key === "k" || e.key === "ArrowLeft") go("guide", cur - 1);
+  else if (e.key === "r") { const d = chaptersDone(); d[cur] = !d[cur]; store.set("chapters", d); render("guide"); }
+});
+window.addEventListener("hashchange", route);
+route();
+</script>
+<script type="module">
+try {
+  const { default: mermaid } = await import("https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs");
+  mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default" });
+  window.__mermaid(mermaid);
+} catch {
+  window.__mermaid(null);
+}
+</script>
+</body>
+</html>

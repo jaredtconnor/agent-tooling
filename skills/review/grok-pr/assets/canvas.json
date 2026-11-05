@@ -1,0 +1,79 @@
+{
+  "categories": [
+    {
+      "id": "context",
+      "label": "Context & purpose",
+      "items": [
+        { "id": "context.problem-stated", "label": "PR states the problem and links the issue", "why": "Reviewers judge code against intent; without it they end up reviewing style." },
+        { "id": "context.intent-achieved", "label": "Code achieves the stated intent and acceptance criteria", "why": "A clean diff that solves the wrong problem is still wrong." },
+        { "id": "context.scope-focused", "label": "One logical change, no unrelated edits", "why": "Mixed concerns hide bugs and make the change hard to revert." },
+        { "id": "context.size-reviewable", "label": "Size is reviewable, or split into clear steps", "why": "Defect detection drops sharply past a few hundred changed lines." }
+      ]
+    },
+    {
+      "id": "design",
+      "label": "Architecture & design",
+      "items": [
+        { "id": "design.right-layer", "label": "Change lives in the module that owns the responsibility", "why": "Logic in the wrong layer gets duplicated and drifts." },
+        { "id": "design.boundaries", "label": "No new dependency cycles or layer violations", "why": "Dependency direction is expensive to undo once callers rely on it." },
+        { "id": "design.reuse", "label": "Reuses existing patterns instead of adding a second convention", "why": "Two ways to do one thing doubles the maintenance and the bugs." },
+        { "id": "design.contract", "label": "API, schema and contract changes are intentional and called out", "why": "Silent contract changes break callers outside the diff." }
+      ]
+    },
+    {
+      "id": "quality",
+      "label": "Code quality",
+      "items": [
+        { "id": "quality.compiles", "label": "Builds, typechecks and lints clean (verified, not assumed)", "why": "A diff can read correctly and still not compile against the rest of the code." },
+        { "id": "quality.correctness", "label": "Logic is correct, including null, empty, boundary and concurrent cases", "why": "Edge cases are where reviewers add the most value over tests." },
+        { "id": "quality.errors", "label": "Errors are handled at the right level; nothing is swallowed", "why": "Swallowed errors turn failures into wrong answers." },
+        { "id": "quality.readability", "label": "Names and structure make intent obvious; no dead code", "why": "The next reader pays for every unclear name." }
+      ]
+    },
+    {
+      "id": "tests",
+      "label": "Testing",
+      "items": [
+        { "id": "tests.cover-change", "label": "Tests exercise the changed behavior", "why": "Line coverage without behavior assertions proves nothing." },
+        { "id": "tests.edge-cases", "label": "Edge and failure cases are covered", "why": "Happy-path tests miss the bugs that reach production." },
+        { "id": "tests.regression", "label": "A bug fix includes a test that fails without the fix", "why": "Without it the bug can return unnoticed." },
+        { "id": "tests.deterministic", "label": "Tests are deterministic and isolated", "why": "Flaky tests get ignored, then deleted." }
+      ]
+    },
+    {
+      "id": "perf-sec",
+      "label": "Performance & security",
+      "items": [
+        { "id": "perf.hot-paths", "label": "No new allocations, queries or IO in hot loops; complexity justified", "why": "Performance regressions rarely show up in a review-sized test." },
+        { "id": "perf.resources", "label": "Resources are disposed; no unbounded growth", "why": "Leaks surface in long runs, far from the change that caused them." },
+        { "id": "sec.input", "label": "Untrusted input is validated; no SQL, path or command injection", "why": "Injection bugs are cheap to prevent and expensive to find later." },
+        { "id": "sec.secrets", "label": "No secrets or PII in code, config or logs", "why": "Leaked secrets need rotation; leaked PII needs disclosure." }
+      ]
+    },
+    {
+      "id": "docs",
+      "label": "Documentation",
+      "items": [
+        { "id": "docs.comments", "label": "Comments explain why where the code is not obvious", "why": "The diff context disappears after merge; the comment stays." },
+        { "id": "docs.user-facing", "label": "Docs and changelog updated for user-visible or contract changes", "why": "Stale docs mislead more than missing docs." }
+      ]
+    },
+    {
+      "id": "standards",
+      "label": "Standards",
+      "items": [
+        { "id": "standards.conventions", "label": "Follows repo conventions (AGENTS.md, coding standards)", "why": "Consistency keeps the codebase searchable and predictable." },
+        { "id": "standards.history", "label": "Branch and commit messages follow the repo's rules", "why": "History is the first place anyone looks when this breaks." }
+      ]
+    },
+    {
+      "id": "final",
+      "label": "Final considerations",
+      "items": [
+        { "id": "final.rollback", "label": "Deploy, migration and rollback path is clear", "why": "A change you cannot back out turns a bug into an outage." },
+        { "id": "final.observability", "label": "Failures are diagnosable from logs or metrics", "why": "You debug production with what you logged, not what you meant to log." },
+        { "id": "final.followups", "label": "Follow-ups are tracked, not left as TODOs", "why": "Untracked TODOs become permanent." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+# guide.json schema
+
+Only `title`, `tldr` and `chapters` are required. Every other field renders when present. Text fields accept light Markdown: `code`, `**bold**`, `[text](https://…)`, and blank-line paragraphs.
+
+```jsonc
+{
+  "id": "owner/repo#252",                 // localStorage key for reviewed state; defaults to url, then title
+  "title": "Share one retry policy across HTTP clients",
+  "url": "https://github.com/owner/repo/pull/252",
+  "author": "Jane Doe",
+  "base": "release/v2026",                // target branch
+  "head": "dev/jane/model-load",          // source branch
+  "issues": [{ "key": "ABC-715", "title": "Model load is slow", "url": "https://…" }],
+
+  "tldr": "One or two sentences: what changes and the effect, in plain words.",
+
+  "intent": {
+    "statement": "What the PR is trying to achieve, from the issue and description.",
+    "source": "issue",                    // issue | pr-description | commits | inferred
+    "criteria": [
+      { "text": "Billing and search clients retry with the same backoff",
+        "status": "met",                  // met | partial | missing | unclear
+        "evidence": "Step 1; `RetryPolicyTests`" }
+    ]
+  },
+
+  "verdict": {
+    "intentMet": "partial",               // yes | partial | no | unclear
+    "recommendation": "request-changes",  // approve | approve-with-nits | request-changes | rethink
+    "prQuality": "ok",                    // good | ok | poor
+    "rationale": "Two or three sentences a reviewer can act on.",
+    "qualitySignals": ["Mixes a refactor with a behavior change", "No regression test for the bug"]
+  },
+
+  "keyChanges": [{ "text": "Retry logic moves into one shared policy", "chapter": 0 }],
+  "risks": ["Search requests now retry on 429; confirm the upstream rate limit tolerates it"],
+
+  "chapters": [
+    {
+      "title": "Share one retry policy",  // names the idea, not the file
+      "summary": "Why this step exists and what to look at.",
+      "hunks": ["src/Retry.cs#0", "src/Retry.cs#2", "tests/RetryPolicyTests.cs"]  // hunk IDs or whole file paths
+    }
+  ],
+
+  "structure": {
+    "changes": [
+      { "kind": "added",                  // added | removed | changed | moved | renamed
+        "symbol": "RetryPolicy.Execute()",
+        "path": "src/Retry.cs",
+        "note": "Single policy used by both clients" }
+    ],
+    "diagrams": [
+      { "title": "Request retries, after",
+        "mermaid": "flowchart LR\n  A[BillingClient] --> R[RetryPolicy.Execute]\n  B[SearchClient] --> R\n  classDef changed stroke:#f2c94c,stroke-width:2px\n  class R changed",
+        "caption": "Both clients now call one policy." }
+    ]
+  },
+
+  "findings": [
+    {
+      "severity": "major",                // blocker | major | minor | nit
+      "category": "correctness",          // correctness | syntax | performance | design | tests | security | scope | docs
+      "path": "src/Rules.cs",
+      "line": 172,                        // line number on `side`
+      "side": "new",                      // new (default) | old, for deleted lines
+      "title": "Non-idempotent POST is retried",
+      "detail": "Evidence: what the code does and why it is wrong.",
+      "suggestion": "Concrete fix.",
+      "confidence": "verified"            // verified | inferred
+    }
+  ],
+
+  "canvas": {
+    "context.intent-achieved": { "status": "concern", "note": "Criterion 2 has no test." }
+    // keys are item ids from assets/canvas.json; status: pass | concern | fail | na | unchecked
+  },
+
+  "verification": [
+    { "command": "dotnet build -p:Platform=x64", "result": "pass", "note": "0 warnings in changed projects" }
+    // result: pass | fail | not-run
+  ]
+}
+```
+
+## Rules the renderer enforces
+
+- Unknown hunk IDs or file paths in `chapters[].hunks`, unknown `severity` or `category`, and invalid canvas statuses are errors (exit 2).
+- Hunks no chapter references go into an auto "Other changes" chapter, with a warning.
+- A finding whose `path` is not in the diff still appears in the Findings tab; it cannot be shown inline.
+- A finding appears inline in the diff only when its `line` falls inside a rendered hunk on its `side`.
