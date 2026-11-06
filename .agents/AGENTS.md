@@ -34,6 +34,7 @@ Avoid emojis, filler openers and closers ("Certainly", "I hope this helps"), sal
 ## Git
 
 - For history, branch, and merge questions, investigate and advise. Don't act in Git or the hosting service unless I ask.
+- Ask before every push, even when I asked you to commit or update a PR. Never force-push yourself, `--force-with-lease` included: prepare the branch locally, verify it, and give me the push command.
 - Merge release branches with a real merge so commit IDs stay the same on both lines. Don't squash or rebase release history.
 - Commit messages:
 
